@@ -1,2 +1,2 @@
-# 3Dtracking
-3D tracking of protists from 2D images
+# Three-dimensional tracking of protists from two-dimensional microscopy images
+
