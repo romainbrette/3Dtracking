@@ -14,7 +14,9 @@ class ParametersDialog(simpledialog.Dialog):
             root.withdraw()  # Hide the main window
             parent = root
         self.parameters = parameters
+        self.parameters = parameters
         self.value = {}
+        self.type = {x: type(z) for x, _, z in parameters}
         super().__init__(parent, title)  # Call the parent class initializer
 
     def body(self, master):
@@ -36,4 +38,4 @@ class ParametersDialog(simpledialog.Dialog):
     def apply(self):
         # Retrieve the entered values when OK is clicked
         for name, text, default in self.parameters:
-            self.value[name] = float(self.entry[name].get())
+            self.value[name] = self.type[name](self.entry[name].get())
