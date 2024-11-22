@@ -55,14 +55,8 @@ cell_half_length = int(P['cell_length']//(2*pixel_size))
 ### Data frame
 df = pd.DataFrame(columns=['filename', 'z', 'x'])
 
-## Iterate
-zmax = P['width'] * np.tan(angle) + P['depth']
-for i in range(P['frames']):
-    ## Position
-    x = P['width']*np.random.rand()
-    z = x*np.tan(P['angle']) + np.random.rand()*P['depth']
-    focal_position = zmax-z
-
+## Blurred image
+def random_image():
     ## Cell image
     cell_image = np.ones((image_size, image_size))
     orientation = np.random.rand()*np.pi
@@ -73,15 +67,35 @@ for i in range(P['frames']):
     # Grey inside
     rr, cc = ellipse(image_size//2, image_size//2, cell_half_width-1, length-1, rotation=orientation, shape=cell_image.shape)
     cell_image[rr, cc] = 0.5
+    return cell_image
 
-    ## Blurring
-    blurred_image = gaussian_filter(cell_image, sigma=focal_position*P['blur'])
+## Iterate
+zmax = P['width'] * np.tan(angle) + P['depth']
+for i in range(P['frames']):
+    ## Position
+    x = P['width']*np.random.rand()
+    z = (x-P['focus_point'])*np.tan(P['angle']) + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
+
+    # Blurring
+    blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
 
     # Make the label file
     row = pd.DataFrame(
         [{'filename': 'im{:05d}.png'.format(i), 'z': z, 'x' : x}])
     df = pd.concat([df, row], ignore_index=True)
     imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(i)), (blurred_image* 255).astype(np.uint8))
+
+## Make a big image
+big_image = np.ones((int(P['width']/pixel_size)+image_size, int(P['width']/pixel_size)+image_size))
+for i in range(50):
+    ## Position
+    x = P['width']*np.random.rand()
+    y = P['width']*np.random.rand()
+    z = (x-P['focus_point'])*np.tan(P['angle']) + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
+
+    blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
+    big_image[int(y/pixel_size):int(y/pixel_size)+image_size, int(x/pixel_size):int(x/pixel_size)+image_size] = blurred_image
+imageio.imwrite(os.path.join(path, 'big_image.png'), (big_image* 255).astype(np.uint8))
 
 ## Save labels
 df.to_csv(label_path, index=False, float_format='%.2f') # two decimals
