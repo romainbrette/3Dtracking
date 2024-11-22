@@ -2,7 +2,6 @@
 Makes a synthetic dataset with defocused cell images to estimate z.
 
 TODO:
-- produce a sample image with many cells
 - take actual focused images as basis (with rotations maybe etc.)
 '''
 import numpy as np
