@@ -35,74 +35,81 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import Adam
 import numpy as np
-from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Input, GlobalAveragePooling2D, Reshape, Lambda
-import random
-import tkinter as tk
-from tkinter import filedialog
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow.keras.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('TkAgg')
 from keras.utils import plot_model
+from tkinter import filedialog
+from gui.gui import *
+import yaml
 
-load_checkpoint = False
-save_checkpoint = True
-batch_size = 64 # seems slightly faster than 32
-number_of_files = None
-epochs = 500
-
-root = tk.Tk()
-root.withdraw()  # Hide the main window
-path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/Deep learning movies/'), title='Choose a folder')
-root.destroy()
-
+### Folders
+path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), title='Choose a folder')
 img_path = os.path.join(path, 'dataset', 'images')
 label_path = os.path.join(path, 'dataset', 'labels.csv')
+parameter_path = os.path.join(path, 'dataset', 'labels.yaml')
 checkpoint_filename = os.path.join(path,'best_z_estimation_augmentation_simple.tf')
+
+### Parameters
+parameters = [('epochs', 'Epochs', 500),
+              ('load_checkpoint', 'Load checkpoint', True), # this should be rendered as a tick
+              ('predict_true_z', 'Predict true z', False) # this exists only for synthetic datasets
+              ]
+param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
+P = param_dialog.value
+save_checkpoint = True
+batch_size = 64 # seems slightly faster than 32
+validation_ratio = 0.2 # proportion of images used for validation
 
 ## Read data
 df = pd.read_csv(label_path)
 
-# Extract filenames and labels
+## Extract filenames and labels
 filenames = df['filename'].values
-labels = df['x'].values # * np.tan(7.2*np.pi/180) # what is the angle here?
+if P['predict_true_z']:
+    labels = df['z'].values # but it would be nice to have as it validation though
+else:
+    labels = df['mean_z'].values
 n = len(filenames)
 
-# Selection
-if number_of_files is not None:
-    files = random.sample(range(n), number_of_files)
-    filenames = filenames[files]
-    labels = labels[files]
-    n = len(filenames)
+## Load images
+tf.keras.preprocessing.image_dataset_from_directory(
+    img_path,
+    labels=labels,
+    label_mode='int',
+    class_names=None,
+    color_mode='rgb',
+    batch_size=32,
+    image_size=(256, 256),
+    shuffle=True,
+    seed=None,
+    validation_split=None,
+    subset=None,
+    interpolation='bilinear',
+    follow_links=False,
+    crop_to_aspect_ratio=False,
+    pad_to_aspect_ratio=False,
+    data_format=None,
+    verbose=True
+)
 
-# Define the function to load and preprocess images
 def load_and_preprocess_image(filename):
     # Load the image
     image = tf.io.read_file(filename)
     image = tf.image.decode_png(image, channels=1)
-    #image = tf.cast(image, tf.float32) / 255.0  # Normalize to [0, 1]
-    # Compute the maximum value in the image
-    #max_val = tf.reduce_max(image)
-    # Avoid division by zero
-    #image = tf.math.divide_no_nan(image, max_val)
     return image
-
 images = np.array([load_and_preprocess_image(os.path.join(img_path,file)) for file in filenames])
-labels = np.array(labels)
 
-#train_images, val_images, train_labels, val_labels = train_test_split(images, labels, test_size=0.2, random_state=42)
-n_split = int(n*4./5)
+## Make training and validation sets
+n_split = int(n*(1-validation_ratio))
 train_images, val_images, train_labels, val_labels = images[:n_split], images[n_split:], labels[:n_split], labels[n_split:]
 
 train_datagen = ImageDataGenerator(
     rescale=1./255,
     #rotation_range=360, ## probably not that useful
-    #width_shift_range=0.2,
-    #height_shift_range=0.2,
-    #shear_range=0.2,
-    #zoom_range=0.2, ## possibly useful, but would also distort the z cue
     brightness_range=[0.5, 2.],
     horizontal_flip=True,
     vertical_flip=True,
@@ -114,7 +121,6 @@ val_datagen = ImageDataGenerator(
     rescale=1./255,
     brightness_range=[0.5, 2.] # maybe not at validation
 )
-
 
 def plot_augmented_images(datagen, image, num_images=9):
     plt.figure(figsize=(10, 10))

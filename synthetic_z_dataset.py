@@ -28,7 +28,6 @@ if not os.path.exists(os.path.join(path, 'dataset')):
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
-
 ### Parameters
 parameters = [('width', 'Width (um)', 12000),
               ('depth', 'Depth (um)', 260),
@@ -73,14 +72,15 @@ zmax = P['width'] * np.tan(angle) + P['depth']
 for i in range(P['frames']):
     ## Position
     x = P['width']*np.random.rand()
-    z = (x-P['focus_point'])*np.tan(P['angle']) + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
+    mean_z = (x-P['focus_point'])*np.tan(P['angle'])*P['depth'] # mean z at the x position
+    z = mean_z + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     # Blurring
     blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
 
     # Make the label file
     row = pd.DataFrame(
-        [{'filename': 'im{:05d}.png'.format(i), 'z': z, 'x' : x}])
+        [{'filename': 'im{:05d}.png'.format(i), 'z': z, 'x' : x, 'mean_z' : mean_z}])
     df = pd.concat([df, row], ignore_index=True)
     imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(i)), (blurred_image* 255).astype(np.uint8))
 
