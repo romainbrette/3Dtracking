@@ -76,26 +76,6 @@ else:
 n = len(filenames)
 
 ## Load images
-tf.keras.preprocessing.image_dataset_from_directory(
-    img_path,
-    labels=labels,
-    label_mode='int',
-    class_names=None,
-    color_mode='rgb',
-    batch_size=32,
-    image_size=(256, 256),
-    shuffle=True,
-    seed=None,
-    validation_split=None,
-    subset=None,
-    interpolation='bilinear',
-    follow_links=False,
-    crop_to_aspect_ratio=False,
-    pad_to_aspect_ratio=False,
-    data_format=None,
-    verbose=True
-)
-
 def load_and_preprocess_image(filename):
     # Load the image
     image = tf.io.read_file(filename)
@@ -106,6 +86,9 @@ images = np.array([load_and_preprocess_image(os.path.join(img_path,file)) for fi
 ## Make training and validation sets
 n_split = int(n*(1-validation_ratio))
 train_images, val_images, train_labels, val_labels = images[:n_split], images[n_split:], labels[:n_split], labels[n_split:]
+
+train_dataset = create_dataset(train_filenames, train_labels)
+val_dataset = create_dataset(val_filenames, val_labels)
 
 train_datagen = ImageDataGenerator(
     rescale=1./255,
