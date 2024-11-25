@@ -1,20 +1,22 @@
 '''
 Makes a synthetic dataset with defocused cell images to estimate z.
+Using actual focused images as basis.
 
-TODO:
-- take actual focused images as basis (with rotations maybe etc.)
+4x: 4900 um
+0.5x: 26640 um (whole field)
 '''
 import numpy as np
 from scipy.ndimage import gaussian_filter
-from skimage.draw import ellipse
 import os
-import imageio
 import pandas as pd
 from tkinter import filedialog
 from gui.gui import *
 import yaml
 import tkinter as tk
+import imageio
+import imageio.v3 as iio
 import tqdm
+import random
 
 root = tk.Tk()
 root.withdraw()
@@ -27,15 +29,14 @@ parameter_path = os.path.join(path, 'labels.yaml')
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
+image_path = filedialog.askdirectory(initialdir=path, title='Choose an image folder')
+
 ### Parameters
 parameters = [('width', 'Width (um)', 12000),
               ('depth', 'Depth (um)', 260),
               ('angle', 'Angle (°)', 19.2), # signed
               ('focus_point', 'Focus point (um)', 12000), # x position where in focus
               ('pixel_size', 'Pixel size (um)', 5.),
-              ('cell_length', 'Cell length (um)', 120),
-              ('cell_width', 'Cell width  (um)', 30),
-              ('image_size', 'Image size (um)', 200),
               ('frames', 'Number of images', 10000),
               ('blur', 'Blur factor', 0.001) # proportionality factor between focal distance and blur size
               ]
@@ -44,27 +45,24 @@ P = param_dialog.value
 
 pixel_size = P['pixel_size']
 angle = P['angle']*np.pi/180.
-P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
-image_size = P['image_size']
-cell_half_width = int(P['cell_width']//(2*pixel_size)) # in pixels
-cell_half_length = int(P['cell_length']//(2*pixel_size))
+
+### Load images
+files = [f for f in os.listdir(image_path) if f.endswith('.tiff') or f.endswith('.tif') or f.endswith('.png')]
+images = [iio.imread(os.path.join(image_path, f)) for f in tqdm.tqdm(files)]
+image_size = images[0].shape[1] # assume square
+
+### Check whether background is white or black (assuming uint8)
+print(images[0].mean())
+if images[0].mean()<128: # black
+    print('Inverting images')
+    images = [255-image for image in images]
 
 ### Data frame
 df = pd.DataFrame(columns=['filename', 'z', 'x', 'mean_z'])
 
 ## Blurred image
 def random_image():
-    ## Cell image
-    cell_image = np.ones((image_size, image_size))
-    orientation = np.random.rand()*np.pi
-    length = int(cell_half_width + (cell_half_length-cell_half_width)*np.random.rand())
-    # Black perimeter
-    rr, cc = ellipse(image_size//2, image_size//2, cell_half_width, length, shape=cell_image.shape, rotation=orientation)
-    cell_image[rr, cc] = 0
-    # Grey inside
-    rr, cc = ellipse(image_size//2, image_size//2, cell_half_width-1, length-1, rotation=orientation, shape=cell_image.shape)
-    cell_image[rr, cc] = 0.5
-    return cell_image
+    return images[random.randint(0, len(images)-1)]/255.
 
 ## Iterate
 for i in tqdm.tqdm(np.arange(P['frames'])):
@@ -74,7 +72,8 @@ for i in tqdm.tqdm(np.arange(P['frames'])):
     z = mean_z + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     # Blurring
-    blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
+    #blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
+    blurred_image = random_image()
 
     # Make the label file
     row = pd.DataFrame(
