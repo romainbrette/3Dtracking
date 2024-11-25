@@ -90,6 +90,10 @@ train_images, val_images, train_labels, val_labels = images[:n_split], images[n_
 train_dataset = create_dataset(train_filenames, train_labels)
 val_dataset = create_dataset(val_filenames, val_labels)
 
+keras.utils.split_dataset(
+    dataset, left_size=None, right_size=None, shuffle=False, seed=None
+)
+
 train_datagen = ImageDataGenerator(
     rescale=1./255,
     #rotation_range=360, ## probably not that useful
