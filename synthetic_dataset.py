@@ -20,11 +20,9 @@ root.withdraw()
 
 ### Folders
 path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), title='Choose a folder')
-img_path = os.path.join(path, 'dataset', 'images')
-label_path = os.path.join(path, 'dataset', 'labels.csv')
-parameter_path = os.path.join(path, 'dataset', 'labels.yaml')
-if not os.path.exists(os.path.join(path, 'dataset')):
-    os.mkdir(os.path.join(path, 'dataset'))
+img_path = os.path.join(path, 'images')
+label_path = os.path.join(path, 'labels.csv')
+parameter_path = os.path.join(path, 'labels.yaml')
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
@@ -51,7 +49,7 @@ cell_half_width = int(P['cell_width']//(2*pixel_size)) # in pixels
 cell_half_length = int(P['cell_length']//(2*pixel_size))
 
 ### Data frame
-df = pd.DataFrame(columns=['filename', 'z', 'x'])
+df = pd.DataFrame(columns=['filename', 'z', 'x', 'mean_z'])
 
 ## Blurred image
 def random_image():
@@ -72,7 +70,7 @@ zmax = P['width'] * np.tan(angle) + P['depth']
 for i in range(P['frames']):
     ## Position
     x = P['width']*np.random.rand()
-    mean_z = (x-P['focus_point'])*np.tan(P['angle'])*P['depth'] # mean z at the x position
+    mean_z = (x-P['focus_point'])*np.tan(P['angle']) # mean z at the x position
     z = mean_z + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     # Blurring
