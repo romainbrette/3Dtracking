@@ -24,13 +24,12 @@ root.withdraw()
 ### Files and folders
 movie_filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), title='Choose a movie file')
 traj_filename = filedialog.askopenfilename(initialdir=os.path.dirname(movie_filename), title='Choose a trajectory file')
+path = filedialog.askdirectory(initialdir=os.path.dirname(traj_filename), title='Choose a dataset folder')
+
 data = magic_load_trajectories(traj_filename)
-path = os.path.dirname(traj_filename)
-img_path = os.path.join(path, 'dataset', 'images')
-label_path = os.path.join(path, 'dataset', 'labels.csv')
-parameter_path = os.path.join(path, 'dataset', 'labels.yaml')
-if not os.path.exists(os.path.join(path, 'dataset')):
-    os.mkdir(os.path.join(path, 'dataset'))
+img_path = os.path.join(path, 'images')
+label_path = os.path.join(path, 'labels.csv')
+parameter_path = os.path.join(path, 'labels.yaml')
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
