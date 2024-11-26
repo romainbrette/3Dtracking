@@ -41,6 +41,10 @@ from tkinter import filedialog
 import tkinter as tk
 from gui.gui import *
 import yaml
+#tf.config.threading.set_intra_op_parallelism_threads(1)
+#tf.config.threading.set_inter_op_parallelism_threads(1)
+#tf.debugging.set_log_device_placement(True)
+
 AUTOTUNE = tf.data.AUTOTUNE
 
 root = tk.Tk()
