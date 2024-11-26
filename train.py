@@ -8,7 +8,7 @@ Roughly 45 s / epoch with the first model; the tuned model is horribly slow (400
 It seems that changing the network structure has little effect.
 
 - maybe stratified dataset with eccentricity?
-- MobileNetV3?
+- MobileNetV3 or other deep net?
 - Use preprocessed features as inputs, eg variance or Brenner gradient
     this is the mean squared 2-pixel wide horizontal difference (not rotation invariant!)
     note that this can be obtained with a filter of kernel size 3
@@ -51,16 +51,17 @@ path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), ti
 img_path = os.path.join(path, 'dataset', 'images')
 label_path = os.path.join(path, 'dataset', 'labels.csv')
 parameter_path = os.path.join(path, 'dataset', 'labels.yaml')
-checkpoint_filename = os.path.join(path,'best_z_estimation_augmentation_simple.tf')
 
 ### Parameters
 parameters = [('epochs', 'Epochs', 500),
               ('load_checkpoint', 'Load checkpoint', True), # this should be rendered as a tick
-              ('predict_true_z', 'Predict true z', False) # this exists only for synthetic datasets
+              ('predict_true_z', 'Predict true z', False), # this exists only for synthetic datasets
+              ('filename_suffix', 'Filename suffix', '')
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
 save_checkpoint = True
+checkpoint_filename = os.path.join(path,'best_z_'+P['filename_suffix']+'.tf')
 batch_size = 64 # seems slightly faster than 32
 validation_ratio = 0.2 # proportion of images used for validation
 
@@ -70,7 +71,7 @@ df = pd.read_csv(label_path)
 ## Extract filenames and labels
 filenames = df['filename'].values
 if P['predict_true_z']:
-    labels = df['z'].values # but it would be nice to have as it validation though
+    labels = df['z'].values # but it would be nice to have it as validation though
 else:
     labels = df['mean_z'].values
 n = len(filenames)
@@ -191,7 +192,7 @@ else:
 history = model.fit(
     train_generator,
     validation_data=val_generator,
-    epochs=epochs,
+    epochs=P['epochs'],
     callbacks=callbacks
 )
 
@@ -199,7 +200,7 @@ history = model.fit(
 loss, mae = model.evaluate(val_generator)
 print(f'Validation loss: {loss}, Validation MAE: {mae}')
 
-model.save(os.path.join(path,'z_estimation.tf'))
+model.save(os.path.join(path,'z_'+P['filename_suffix']+'.tf'))
 
 # Plot
 plt.plot(history.history['mae'])
