@@ -52,10 +52,12 @@ images = [iio.imread(os.path.join(image_path, f)) for f in tqdm.tqdm(files)]
 image_size = images[0].shape[1] # assume square
 
 ### Check whether background is white or black (assuming uint8)
-print(images[0].mean())
 if images[0].mean()<128: # black
-    print('Inverting images')
-    images = [255-image for image in images]
+    print('Black background')
+    black_background = True
+    #images = [255-image for image in images]
+else:
+    black_background = False
 
 ### Data frame
 df = pd.DataFrame(columns=['filename', 'z', 'x', 'mean_z'])
@@ -72,8 +74,7 @@ for i in tqdm.tqdm(np.arange(P['frames'])):
     z = mean_z + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     # Blurring
-    #blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
-    blurred_image = random_image()
+    blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
 
     # Make the label file
     row = pd.DataFrame(
@@ -83,6 +84,8 @@ for i in tqdm.tqdm(np.arange(P['frames'])):
 
 ## Make a big image
 big_image = np.ones((int(P['width']/pixel_size)+image_size, int(P['width']/pixel_size)+image_size))
+if black_background:
+    big_image = 0.*big_image
 for i in range(50):
     ## Position
     x = P['width']*np.random.rand()
