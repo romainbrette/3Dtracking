@@ -16,6 +16,7 @@ class ParametersDialog(simpledialog.Dialog):
         self.parameters = parameters
         self.parameters = parameters
         self.value = {}
+        self.checks = {}
         self.type = {x: type(z) for x, _, z in parameters}
         super().__init__(parent, title)  # Call the parent class initializer
 
@@ -26,9 +27,13 @@ class ParametersDialog(simpledialog.Dialog):
             # Create labels and entry fields for fps and pixelsize
             tk.Label(master, text=text).grid(row=i, column=0)
 
-            self.entry[name] = tk.Entry(master)
-            # Set default values
-            self.entry[name].insert(0, str(default))
+            if self.type[name] == type(True):
+                self.checks[name] = tk.BooleanVar()
+                self.entry[name] = tk.Checkbutton(master, variable=self.checks[name])
+            else:
+                self.entry[name] = tk.Entry(master)
+                # Set default values
+                self.entry[name].insert(0, str(default))
 
             self.entry[name].grid(row=i, column=1)
             i += 1
@@ -38,4 +43,7 @@ class ParametersDialog(simpledialog.Dialog):
     def apply(self):
         # Retrieve the entered values when OK is clicked
         for name, text, default in self.parameters:
-            self.value[name] = self.type[name](self.entry[name].get())
+            if self.type[name] == type(True):
+                self.value[name] = self.checks[name].get()
+            else:
+                self.value[name] = self.type[name](self.entry[name].get())

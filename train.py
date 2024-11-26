@@ -30,26 +30,26 @@ It seems that changing the network structure has little effect.
 import pandas as pd
 import os
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
-from tensorflow.keras.models import Model
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.optimizers import Adam
-import numpy as np
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('TkAgg')
-from keras.utils import plot_model
 from tkinter import filedialog
+import tkinter as tk
 from gui.gui import *
 import yaml
+AUTOTUNE = tf.data.AUTOTUNE
+
+root = tk.Tk()
+root.withdraw()
 
 ### Folders
 path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), title='Choose a folder')
-img_path = os.path.join(path, 'dataset', 'images')
-label_path = os.path.join(path, 'dataset', 'labels.csv')
+img_path = os.path.join(path, 'images')
+label_path = os.path.join(path, 'labels.csv')
 parameter_path = os.path.join(path, 'dataset', 'labels.yaml')
 
 ### Parameters
@@ -74,68 +74,44 @@ if P['predict_true_z']:
     labels = df['z'].values # but it would be nice to have it as validation though
 else:
     labels = df['mean_z'].values
+filenames = [os.path.join(img_path, name) for name in filenames]
 n = len(filenames)
 
 ## Load images
-def load_and_preprocess_image(filename):
-    # Load the image
-    image = tf.io.read_file(filename)
-    image = tf.image.decode_png(image, channels=1)
-    return image
-images = np.array([load_and_preprocess_image(os.path.join(img_path,file)) for file in filenames])
+
+# Create a mapping function for loading and preprocessing images
+def load_image(filename, label):
+    # Load the image from the file path
+    img = tf.io.read_file(filename)
+    img = tf.image.decode_png(img, channels=1)
+    #img = img / 255.0  # Normalize pixel values to [0, 1]
+    return img, label
+
+image, _ = load_image(filenames[0], None)
+shape = image.shape
+print("Image shape:", shape)
+
+# Create a tf.data.Dataset from filenames and labels
+dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
+dataset = dataset.map(load_image, num_parallel_calls=tf.data.AUTOTUNE)
+#dataset = dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
 ## Make training and validation sets
-n_split = int(n*(1-validation_ratio))
-train_images, val_images, train_labels, val_labels = images[:n_split], images[n_split:], labels[:n_split], labels[n_split:]
+train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=False)
 
-train_dataset = create_dataset(train_filenames, train_labels)
-val_dataset = create_dataset(val_filenames, val_labels)
+## Data augmentation
+data_augmentation = tf.keras.Sequential([
+    layers.Rescaling(1./255),
+    layers.RandomFlip("horizontal_and_vertical")
+    #layers.RandomBrightness(factor=[0.5, 2.], value_range=[0., 1.])  # not sure
+    #layers.RandomRotation(0.2),
+])
+train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
+val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 
-keras.utils.split_dataset(
-    dataset, left_size=None, right_size=None, shuffle=False, seed=None
-)
-
-train_datagen = ImageDataGenerator(
-    rescale=1./255,
-    #rotation_range=360, ## probably not that useful
-    brightness_range=[0.5, 2.],
-    horizontal_flip=True,
-    vertical_flip=True,
-    fill_mode='constant', # filling with black (background removed) # not useful actually if no rotations
-    cval=0
-    #fill_mode='nearest'
-)
-val_datagen = ImageDataGenerator(
-    rescale=1./255,
-    brightness_range=[0.5, 2.] # maybe not at validation
-)
-
-def plot_augmented_images(datagen, image, num_images=9):
-    plt.figure(figsize=(10, 10))
-    for i in range(num_images):
-        # Generate an augmented image
-        batch = next(datagen.flow(image, batch_size=1))
-        print(batch[0].max(), batch[0].mean())
-        augmented_image = (batch[0]*255.).astype('uint8')
-
-        # Plot the image
-        plt.subplot(3, 3, i + 1)
-        plt.imshow(augmented_image, cmap='gray')
-        plt.axis('off')
-    plt.show()
-
-# Plot augmented images
-#image = images[0]
-#image = image.reshape((1,) + image.shape)
-#plot_augmented_images(train_datagen, image)
-#exit(0)
-
-# Create training and validation generators
-train_generator = train_datagen.flow(train_images, train_labels, batch_size=batch_size)
-val_generator = val_datagen.flow(val_images, val_labels, batch_size=batch_size)
-
-shape = images[0].shape
-print("Image shape:", shape)
+## Prepare
+train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
+val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
 model = Sequential([
     #Rescaling(1./255),
@@ -147,27 +123,10 @@ model = Sequential([
     Dense(128, activation='leaky_relu'), # was 64
     Dense(1)
 ])
-
-# model = Sequential([Conv2D(32, (3, 3), activation='relu', input_shape=shape),
-#                     MaxPooling2D((2, 2))])
-# for _ in range(4):
-#     model.add(Conv2D(32, (3, 3), activation='relu')) # should I progressively increase this number?
-#     model.add(MaxPooling2D((2, 2)))
-# model.add(Flatten())
-# #model.add(Dense(64, activation='relu'))
-# model.add(Dense(1))
-
-# model = Sequential([
-#  Conv2D(32, (5, 5), activation='relu', input_shape=shape), # was 32; (3,3)
-#  GlobalAveragePooling2D(),
-#  Dense(32, activation='relu'), # perhaps try tunable swish
-#  Dense(1)
-# ])
-
 model.summary()
 
 # Load weights from the checkpoint
-if load_checkpoint:
+if P['load_checkpoint']:
     model.load_weights(checkpoint_filename)
 
 # Compile the model
@@ -190,14 +149,14 @@ else:
 
 # Train the model
 history = model.fit(
-    train_generator,
-    validation_data=val_generator,
+    train_dataset,
+    validation_data=val_dataset,
     epochs=P['epochs'],
     callbacks=callbacks
 )
 
 # Evaluate the model
-loss, mae = model.evaluate(val_generator)
+loss, mae = model.evaluate(val_dataset)
 print(f'Validation loss: {loss}, Validation MAE: {mae}')
 
 model.save(os.path.join(path,'z_'+P['filename_suffix']+'.tf'))
