@@ -70,7 +70,7 @@ def random_image():
 for i in tqdm.tqdm(np.arange(P['frames'])):
     ## Position
     x = P['width']*np.random.rand()
-    mean_z = (x-P['focus_point'])*np.tan(P['angle']) # mean z at the x position
+    mean_z = (x-P['focus_point'])*np.tan(angle) # mean z at the x position
     z = mean_z + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     # Blurring
@@ -88,7 +88,7 @@ for i in range(50):
     ## Position
     x = P['width']*np.random.rand()
     y = P['width']*np.random.rand()
-    z = (x-P['focus_point'])*np.tan(P['angle']) + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
+    z = (x-P['focus_point'])*np.tan(angle) + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
     big_image[int(y/pixel_size):int(y/pixel_size)+image_size, int(x/pixel_size):int(x/pixel_size)+image_size] = blurred_image

@@ -38,7 +38,7 @@ parameters = [('width', 'Width (um)', 12000),
               ('focus_point', 'Focus point (um)', 12000), # x position where in focus
               ('pixel_size', 'Pixel size (um)', 5.),
               ('frames', 'Number of images', 10000),
-              ('blur', 'Blur factor', 0.001) # proportionality factor between focal distance and blur size
+              ('blur', 'Blur factor', 0.0001) # proportionality factor between focal distance and blur size
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -70,7 +70,7 @@ def random_image():
 for i in tqdm.tqdm(np.arange(P['frames'])):
     ## Position
     x = P['width']*np.random.rand()
-    mean_z = (x-P['focus_point'])*np.tan(P['angle']) # mean z at the x position
+    mean_z = (x-P['focus_point'])*np.tan(angle) # mean z at the x position
     z = mean_z + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     # Blurring
@@ -90,7 +90,7 @@ for i in range(50):
     ## Position
     x = P['width']*np.random.rand()
     y = P['width']*np.random.rand()
-    z = (x-P['focus_point'])*np.tan(P['angle']) + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
+    z = (x-P['focus_point'])*np.tan(angle) + 2*(np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
     big_image[int(y/pixel_size):int(y/pixel_size)+image_size, int(x/pixel_size):int(x/pixel_size)+image_size] = blurred_image

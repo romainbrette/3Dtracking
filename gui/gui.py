@@ -28,8 +28,10 @@ class ParametersDialog(simpledialog.Dialog):
             tk.Label(master, text=text).grid(row=i, column=0)
 
             if self.type[name] == type(True):
-                self.checks[name] = tk.BooleanVar()
+                self.checks[name] = tk.BooleanVar(master, default)
                 self.entry[name] = tk.Checkbutton(master, variable=self.checks[name])
+                if default:
+                    self.entry[name].select()
             else:
                 self.entry[name] = tk.Entry(master)
                 # Set default values
