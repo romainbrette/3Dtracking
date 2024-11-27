@@ -173,8 +173,8 @@ val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(b
 #val_dataset = val_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
 ## Metrics
-def second_absolute_error(y_true, y_pred):
-    return tf.reduce_mean(tf.abs(y_pred - y_true[:, 0]))
+def second_absolute_error(y_true, y_pred): # doesn't give the right result!
+    return tf.reduce_mean(tf.abs(y_pred - y_true[:, 1]))
 
 ## Load weights and model from the checkpoint
 if P['load_checkpoint']:
