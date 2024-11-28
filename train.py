@@ -6,7 +6,6 @@ There was an issue with brightness_range: it can be done on int images (255), no
 TODO:
 - Metrics: on both z and z_mean
 - Deal with images with no background subtraction
-- Augmentation with brightness
 
 Ideas:
 - maybe stratified dataset with eccentricity?
@@ -49,7 +48,7 @@ import numpy as np
 #tf.config.threading.set_intra_op_parallelism_threads(1)
 #tf.config.threading.set_inter_op_parallelism_threads(1)
 #tf.debugging.set_log_device_placement(True)
-
+#tf.config.set_visible_devices([], 'GPU')
 AUTOTUNE = tf.data.AUTOTUNE
 
 root = tk.Tk()
@@ -62,7 +61,7 @@ label_path = os.path.join(path, 'labels.csv')
 
 ### Parameters
 parameters = [('epochs', 'Epochs', 500),
-              ('load_checkpoint', 'Load checkpoint', True),
+              ('load_checkpoint', 'Load checkpoint', False),
               ('predict_true_z', 'Predict true z', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
               ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant
@@ -159,7 +158,7 @@ else:
     scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
 data_augmentation = tf.keras.Sequential([
     layers.Rescaling(1./255),
-    layers.RandomFlip("horizontal_and_vertical"),
+    #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
     scaling
     #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)
 ])
@@ -242,7 +241,6 @@ else:
     df.to_csv(history_path)
 
 ## Plot
-print(history.history)
 plt.plot(history.history['mae'])
 plt.plot(history.history['val_mae'])
 if second_metric:
