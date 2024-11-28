@@ -1,34 +1,8 @@
 '''
 Train a network to estimate z from Paramecium image.
 
-There was an issue with brightness_range: it can be done on int images (255), not normalized.
-
 TODO:
-- Check whether the background is actually 255 (not sure)
-    otherwise rescaling should be relative to the background (= most frequent intensity value)
 - Metrics: on both z and z_mean
-- Deal with images with no background subtraction
-
-Ideas:
-- maybe stratified dataset with eccentricity?
-- MobileNetV3 or other deep net?
-- Use preprocessed features as inputs, eg variance or Brenner gradient
-    this is the mean squared 2-pixel wide horizontal difference (not rotation invariant!)
-    note that this can be obtained with a filter of kernel size 3
-- Not clear whether I should use adam or rmsprop
-
-
-    Deprecated: `tf.keras.preprocessing.image.ImageDataGenerator` is not
-    recommended for new code. Prefer loading images with
-    `tf.keras.utils.image_dataset_from_directory` and transforming the output
-    `tf.data.Dataset` with preprocessing layers. For more information, see the
-    tutorials for [loading images](
-    https://www.tensorflow.org/tutorials/load_data/images) and
-    [augmenting images](
-    https://www.tensorflow.org/tutorials/images/data_augmentation), as well as
-    the [preprocessing layer guide](
-    https://www.tensorflow.org/guide/keras/preprocessing_layers).
-
 '''
 import pandas as pd
 import os
@@ -229,8 +203,11 @@ t2 = time()
 P['time'] = t2-t1
 
 ## Evaluate
+P['loss'] = loss
+P['mae'] = mae
 if second_metric:
     loss, mae, mae2 = model.evaluate(val_dataset)
+    P['mae'] = mae2
     print(f'Validation loss: {loss}, Validation MAE (mean z): {mae}, Validation MAE (z): {mae2}')
 else:
     loss, mae = model.evaluate(val_dataset)
