@@ -4,6 +4,8 @@ Train a network to estimate z from Paramecium image.
 There was an issue with brightness_range: it can be done on int images (255), not normalized.
 
 TODO:
+- Check whether the background is actually 255 (not sure)
+    otherwise rescaling should be relative to the background (= most frequent intensity value)
 - Metrics: on both z and z_mean
 - Deal with images with no background subtraction
 
@@ -45,10 +47,7 @@ import yaml
 import pandas as pd
 from time import time
 import numpy as np
-#tf.config.threading.set_intra_op_parallelism_threads(1)
-#tf.config.threading.set_inter_op_parallelism_threads(1)
-#tf.debugging.set_log_device_placement(True)
-#tf.config.set_visible_devices([], 'GPU')
+from scipy import stats
 AUTOTUNE = tf.data.AUTOTUNE
 
 root = tk.Tk()
@@ -109,11 +108,14 @@ def load_image(filename, label):
 
 ## Get image shape
 image, _ = load_image(filenames[0], None)
+image = np.array(image)
 shape = image.shape
 print("Image shape:", shape)
 
 ## Check whether background is white or black (assuming uint8)
-if np.array(image).mean()<128: # black
+most_frequent_value, _ = stats.mode(image.flatten())
+print("Background value:", most_frequent_value)
+if image.mean()<128: # black
     print('Black background')
     black_background = True
 else:
@@ -153,17 +155,19 @@ class RandomIntensityScaling(tf.keras.layers.Layer):
         return config
 
 if P['background_subtracted']:
-    scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
+    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
 else:
-    scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
+    intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
 data_augmentation = tf.keras.Sequential([
     layers.Rescaling(1./255),
     #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-    scaling
-    #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)
+    intensity_scaling
+    #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
 ])
+just_rescaling = layers.Rescaling(1./255)
+
 train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
-val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
+val_dataset = val_dataset.map(lambda x, y: (just_rescaling(x), y), num_parallel_calls=AUTOTUNE)
 
 ## Prepare
 train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
