@@ -28,7 +28,7 @@ root = tk.Tk()
 root.withdraw()
 
 ### Folders
-path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), title='Choose a folder')
+path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a folder')
 img_path = os.path.join(path, 'images')
 label_path = os.path.join(path, 'labels.csv')
 
@@ -166,6 +166,9 @@ else:
         MaxPooling2D((2, 2)),
         Flatten(),
         Dense(128, activation='leaky_relu'),
+        Dense(1), # Then nonlinear 1D regression to deal with biases
+        Dense(64, activation='leaky_relu'),
+        Dense(64, activation='leaky_relu'),
         Dense(1)
     ])
     # model.summary()
@@ -203,15 +206,15 @@ t2 = time()
 P['time'] = t2-t1
 
 ## Evaluate
-P['loss'] = loss
-P['mae'] = mae
 if second_metric:
     loss, mae, mae2 = model.evaluate(val_dataset)
-    P['mae'] = mae2
+    P['mae2'] = mae2
     print(f'Validation loss: {loss}, Validation MAE (mean z): {mae}, Validation MAE (z): {mae2}')
 else:
     loss, mae = model.evaluate(val_dataset)
     print(f'Validation loss: {loss}, Validation MAE: {mae}')
+P['loss'] = loss
+P['mae'] = mae
 model.save(os.path.join(path,'z_'+P['filename_suffix']+'.tf'))
 
 ## Save training history
