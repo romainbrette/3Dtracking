@@ -8,7 +8,7 @@ import pandas as pd
 import os
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, GlobalAveragePooling2D, BatchNormalization, LeakyReLU, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
@@ -22,13 +22,14 @@ import pandas as pd
 from time import time
 import numpy as np
 from scipy import stats
+from tensorflow.keras.regularizers import l2
 AUTOTUNE = tf.data.AUTOTUNE
 
 root = tk.Tk()
 root.withdraw()
 
 ### Folders
-path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a folder')
+path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a dataset folder')
 img_path = os.path.join(path, 'images')
 label_path = os.path.join(path, 'labels.csv')
 
@@ -47,7 +48,7 @@ save_checkpoint = True
 checkpoint_filename = os.path.join(path,'best_z_'+P['filename_suffix']+'.tf')
 parameter_path = os.path.join(path, 'training_'+P['filename_suffix']+'.yaml')
 history_path = os.path.join(path, 'history_'+P['filename_suffix']+'.csv')
-batch_size = 64 # seems slightly faster than 32
+batch_size = 64
 validation_ratio = 0.2 # proportion of images used for validation
 
 ## Read data
@@ -56,17 +57,12 @@ df = pd.read_csv(label_path)
 ## Extract filenames and labels
 filenames = df['filename'].values
 mean_z = df['mean_z'].values.reshape(-1, 1)
-second_metric = False
 if 'z' in df:
     z = df['z'].values.reshape(-1, 1)
 if P['predict_true_z']:
     labels = z # but it would be nice to have it as validation though
 else:
-    if False: #'z' in df: # For some reason, this doesn't work
-        labels = np.hstack((mean_z, z))
-        second_metric = True
-    else:
-        labels = mean_z
+    labels = mean_z
 filenames = [os.path.join(img_path, name) for name in filenames]
 n = len(filenames)
 
@@ -109,9 +105,7 @@ class RandomIntensityScaling(tf.keras.layers.Layer):
         self.min_scale = min_scale
         self.max_scale = max_scale
 
-    def call(self, inputs, training=None):
-        #if not training:  # Apply augmentation only during training
-        #    return inputs
+    def call(self, inputs):
 
         scale = tf.random.uniform([], self.min_scale, self.max_scale)
         if black_background:
@@ -141,7 +135,8 @@ data_augmentation = tf.keras.Sequential([
 just_rescaling = layers.Rescaling(1./255)
 
 train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
-val_dataset = val_dataset.map(lambda x, y: (just_rescaling(x), y), num_parallel_calls=AUTOTUNE)
+#val_dataset = val_dataset.map(lambda x, y: (just_rescaling(x), y), num_parallel_calls=AUTOTUNE)
+val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 
 ## Prepare
 train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
@@ -149,35 +144,70 @@ val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(b
 #train_dataset = train_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 #val_dataset = val_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
-## Metrics
-def second_absolute_error(y_true, y_pred): # doesn't give the right result!
-    return tf.reduce_mean(tf.abs(y_pred - y_true[:, 1]))
-
 ## Load weights and model from the checkpoint
 if P['load_checkpoint']:
     print('Loading previous model')
     #model.load_weights(checkpoint_filename)
-    model = tf.keras.models.load_model(checkpoint_filename, custom_objects={'second_absolute_error': second_absolute_error})
+    model = tf.keras.models.load_model(checkpoint_filename)
 else:
+    # model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
+    #     Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
+    #     MaxPooling2D((2, 2)),
+    #     Conv2D(87, (5, 5), activation='leaky_relu'),
+    #     MaxPooling2D((2, 2)),
+    #     Flatten(),
+    #     Dense(161, activation='leaky_relu'),
+    #     Dense(1)
+    # ])
+    # model = Sequential([
+    #     Conv2D(32, (3, 3), activation='relu', input_shape=shape), # , kernel_initializer='he_normal'
+    #     MaxPooling2D((2, 2)),
+    #     Conv2D(32, (3, 3), activation='relu'),
+    #     MaxPooling2D((2, 2)),
+    #     Conv2D(32, (3, 3), activation='relu'),
+    #     MaxPooling2D((2, 2)),
+    #     Conv2D(32, (3, 3), activation='relu'),
+    #     MaxPooling2D((2, 2)),
+    #     #GlobalAveragePooling2D(),
+    #     Flatten(),
+    #     #Dropout(0.5),
+    #     Dense(128, activation='relu', kernel_initializer='he_normal'), # ou relu, à tester; aussi kernel_initializer=he_normal ou he_uniform
+    #     Dense(1)
+    # ])
+
     model = Sequential([
-        Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
+        Conv2D(16, (3, 3), kernel_initializer='he_normal', input_shape=shape),
+        #BatchNormalization(),  # Doesn't seem to work
+        LeakyReLU(),  # Activation après BN
         MaxPooling2D((2, 2)),
-        Conv2D(64, (3, 3), activation='leaky_relu'),
+
+        Conv2D(16, (3, 3), kernel_initializer='he_normal'),
+        #BatchNormalization(),
+        LeakyReLU(),  # Activation après BN
         MaxPooling2D((2, 2)),
+
+        Conv2D(16, (3, 3), kernel_initializer='he_normal'),
+        LeakyReLU(),
+        MaxPooling2D((2, 2)),
+
+        Conv2D(16, (3, 3), kernel_initializer='he_normal'),
+        LeakyReLU(),
+        MaxPooling2D((2, 2)),
+
+        #GlobalAveragePooling2D(),
         Flatten(),
-        Dense(128, activation='leaky_relu'),
-        Dense(1), # Then nonlinear 1D regression to deal with biases
-        Dense(64, activation='leaky_relu'),
-        Dense(64, activation='leaky_relu'),
+        #Dropout(0.5),
+        Dense(128, activation='relu', kernel_initializer='he_normal'),
         Dense(1)
     ])
-    # model.summary()
+
+    model.summary()
 
 ## Compile the model
-if second_metric:
-    model.compile(optimizer="adam", loss='mean_squared_error', metrics=['mae', second_absolute_error])
-else:
-    model.compile(optimizer="adam", loss='mean_squared_error', metrics=['mae'])
+model.compile(optimizer='rmsprop', # default learning_rate .001
+              loss='mean_squared_error', metrics=['mae'])
+#model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0005), # default learning_rate .001
+#              loss='mean_squared_error', metrics=['mae'])
 
 ## Define the ModelCheckpoint callback
 checkpoint = ModelCheckpoint(
@@ -206,13 +236,8 @@ t2 = time()
 P['time'] = t2-t1
 
 ## Evaluate
-if second_metric:
-    loss, mae, mae2 = model.evaluate(val_dataset)
-    P['mae2'] = mae2
-    print(f'Validation loss: {loss}, Validation MAE (mean z): {mae}, Validation MAE (z): {mae2}')
-else:
-    loss, mae = model.evaluate(val_dataset)
-    print(f'Validation loss: {loss}, Validation MAE: {mae}')
+loss, mae = model.evaluate(val_dataset)
+print(f'Validation loss: {loss}, Validation MAE: {mae}')
 P['loss'] = loss
 P['mae'] = mae
 model.save(os.path.join(path,'z_'+P['filename_suffix']+'.tf'))
@@ -227,12 +252,10 @@ else:
 ## Plot
 plt.plot(history.history['mae'])
 plt.plot(history.history['val_mae'])
-if second_metric:
-    plt.plot(history.history['val_second_absolute_error'])
 plt.title('Model MAE')
 plt.ylabel('mae')
 plt.xlabel('Epoch')
-plt.legend(['Train', 'Val', 'Val true'], loc='upper right')
+plt.legend(['Train', 'Val'], loc='upper right')
 plt.show()
 
 ## Save parameters

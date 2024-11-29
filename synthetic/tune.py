@@ -110,7 +110,7 @@ def build_model(hp):
 
     # Compile the model
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate), # apparently current Adam runs slower
         loss='mean_squared_error', metrics=['mae']
     )
 

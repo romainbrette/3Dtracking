@@ -17,19 +17,20 @@ import imageio
 import imageio.v3 as iio
 import tqdm
 import random
+import albumentations as A
 
 root = tk.Tk()
 root.withdraw()
 
 ### Folders
-path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), title='Choose a dataset folder')
+path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a dataset folder')
 img_path = os.path.join(path, 'images')
 label_path = os.path.join(path, 'labels.csv')
 parameter_path = os.path.join(path, 'labels.yaml')
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
-image_path = filedialog.askdirectory(initialdir=path, title='Choose an image folder')
+image_path = filedialog.askdirectory(initialdir=path, message='Choose a base image folder')
 
 ### Parameters
 parameters = [('width', 'Width (um)', 12000),
@@ -64,7 +65,10 @@ df = pd.DataFrame(columns=['filename', 'z', 'x', 'mean_z'])
 
 ## Blurred image
 def random_image():
-    return images[random.randint(0, len(images)-1)]/255.
+    image = images[random.randint(0, len(images)-1)]/255.
+    # Random rotation
+    angle = random.random()*360.
+    return A.rotate(image, angle, border_mode=0, value=1.-black_background)
 
 ## Iterate
 for i in tqdm.tqdm(np.arange(P['frames'])):
