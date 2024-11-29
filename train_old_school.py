@@ -9,7 +9,7 @@ import pandas as pd
 import os
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, GlobalAveragePooling2D, BatchNormalization, LeakyReLU, Dropout
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, GlobalAveragePooling2D, BatchNormalization, LeakyReLU, Dropout, ReLU
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
@@ -23,8 +23,8 @@ import pandas as pd
 from time import time
 import numpy as np
 from scipy import stats
+import tqdm
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.regularizers import l2
 AUTOTUNE = tf.data.AUTOTUNE
 
 root = tk.Tk()
@@ -58,9 +58,9 @@ df = pd.read_csv(label_path)
 
 ## Extract filenames and labels
 filenames = df['filename'].values
-mean_z = df['mean_z'].values.reshape(-1, 1)
+mean_z = df['mean_z'].values
 if 'z' in df:
-    z = df['z'].values.reshape(-1, 1)
+    z = df['z'].values
 if P['predict_true_z']:
     labels = z # but it would be nice to have it as validation though
 else:
@@ -71,15 +71,16 @@ n = len(filenames)
 ## Load images
 
 # Create a mapping function for loading and preprocessing images
-def load_image(filename, label):
+def load_image(filename):
     # Load the image from the file path
     img = tf.io.read_file(filename)
     img = tf.image.decode_png(img, channels=1)
-    #img = img / 255.0  # Normalize pixel values to [0, 1]
-    return img, label
+    img = tf.cast(img, dtype=tf.float32)
+    img = img / 255.0  # Normalize pixel values to [0, 1]
+    return img
 
 ## Get image shape
-image, _ = load_image(filenames[0], None)
+image = load_image(filenames[0])
 image = np.array(image)
 shape = image.shape
 print("Image shape:", shape)
@@ -87,62 +88,15 @@ print("Image shape:", shape)
 ## Check whether background is white or black (assuming uint8)
 most_frequent_value, _ = stats.mode(image.flatten())
 print("Background value:", most_frequent_value)
-if image.mean()<128: # black
+if image.mean()<.5: # black
     print('Black background')
     black_background = True
 else:
     black_background = False
 
 ## Create a dataset
-images = np.array([load_image(os.path.join(img_path,file)) for file in filenames])
+images = np.array([load_image(os.path.join(img_path, file)) for file in tqdm.tqdm(filenames)])
 labels = np.array(labels)
-
-n_split = int(n*4./5)
-train_images, val_images, train_labels, val_labels = images[:n_split], images[n_split:], labels[:n_split], labels[n_split:]
-
-train_datagen = ImageDataGenerator(
-    rescale=1./255,
-    #rotation_range=360, ## probably not that useful
-    #width_shift_range=0.2,
-    #height_shift_range=0.2,
-    #shear_range=0.2,
-    #zoom_range=0.2, ## possibly useful, but would also distort the z cue
-    brightness_range=[0.5, 2.],
-    horizontal_flip=True,
-    vertical_flip=True,
-    fill_mode='constant', # filling with black (background removed) # not useful actually if no rotations
-    cval=0
-    #fill_mode='nearest'
-)
-val_datagen = ImageDataGenerator(
-    rescale=1./255,
-    brightness_range=[0.5, 2.] # maybe not at validation
-)
-
-
-
-
-if P['background_subtracted']:
-    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
-else:
-    intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
-data_augmentation = tf.keras.Sequential([
-    layers.Rescaling(1./255),
-    #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-    intensity_scaling
-    #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
-])
-just_rescaling = layers.Rescaling(1./255)
-
-train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
-#val_dataset = val_dataset.map(lambda x, y: (just_rescaling(x), y), num_parallel_calls=AUTOTUNE)
-val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
-
-## Prepare
-train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
-val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
-#train_dataset = train_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
-#val_dataset = val_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
 ## Load weights and model from the checkpoint
 if P['load_checkpoint']:
@@ -177,27 +131,27 @@ else:
 
     model = Sequential([
         Conv2D(16, (3, 3), kernel_initializer='he_normal', input_shape=shape),
-        #BatchNormalization(),  # Doesn't seem to work
-        LeakyReLU(),  # Activation après BN
+        BatchNormalization(),  # Doesn't seem to work
+        ReLU(),  # Activation après BN
         MaxPooling2D((2, 2)),
 
         Conv2D(16, (3, 3), kernel_initializer='he_normal'),
-        #BatchNormalization(),
-        LeakyReLU(),  # Activation après BN
+        BatchNormalization(),
+        ReLU(),  # Activation après BN
         MaxPooling2D((2, 2)),
-
-        Conv2D(16, (3, 3), kernel_initializer='he_normal'),
-        LeakyReLU(),
-        MaxPooling2D((2, 2)),
-
-        Conv2D(16, (3, 3), kernel_initializer='he_normal'),
-        LeakyReLU(),
-        MaxPooling2D((2, 2)),
+        #
+        # Conv2D(16, (3, 3), kernel_initializer='he_normal'),
+        # LeakyReLU(),
+        # MaxPooling2D((2, 2)),
+        #
+        # Conv2D(16, (3, 3), kernel_initializer='he_normal'),
+        # LeakyReLU(),
+        # MaxPooling2D((2, 2)),
 
         #GlobalAveragePooling2D(),
         Flatten(),
         #Dropout(0.5),
-        Dense(128, activation='relu', kernel_initializer='he_normal'),
+        Dense(16, activation='relu', kernel_initializer='he_normal'),
         Dense(1)
     ])
 
@@ -226,20 +180,23 @@ else:
 
 ## Train
 t1 = time()
+# Train the model
+print("Starting fit")
 history = model.fit(
-    train_dataset,
-    validation_data=val_dataset,
+    images, labels,
+    batch_size=batch_size,
+    validation_split=0.2,
     epochs=P['epochs'],
     callbacks=callbacks
 )
 t2 = time()
 P['time'] = t2-t1
 
-## Evaluate
-loss, mae = model.evaluate(val_dataset)
-print(f'Validation loss: {loss}, Validation MAE: {mae}')
-P['loss'] = loss
-P['mae'] = mae
+# Evaluate the model
+# loss, mae = model.evaluate(val_generator)
+# print(f'Validation loss: {loss}, Validation MAE: {mae}')
+# P['loss'] = loss
+# P['mae'] = mae
 model.save(os.path.join(path,'z_'+P['filename_suffix']+'.tf'))
 
 ## Save training history
