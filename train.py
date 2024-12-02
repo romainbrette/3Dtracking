@@ -3,6 +3,7 @@ Train a network to estimate z from Paramecium image.
 
 TODO:
 - Metrics: on both z and z_mean
+- Predict sigma instead of true z
 '''
 import pandas as pd
 import os
@@ -38,7 +39,7 @@ parameters = [('epochs', 'Epochs', 500),
               ('load_checkpoint', 'Load checkpoint', False),
               ('predict_true_z', 'Predict true z', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
-              ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant
+              ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
               ('min_scaling', 'Minimum intensity scaling', 0.5),
               ('max_scaling', 'Maximum intensity scaling', 1.2)
               ]

@@ -100,7 +100,16 @@ for i in range(N):
     z = (x-P['focus_point'])*np.tan(angle) + (np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur']/pixel_size)
-    big_image[int(y/pixel_size):int(y/pixel_size)+image_size, int(x/pixel_size):int(x/pixel_size)+image_size] = blurred_image
+    if black_background:
+        patch = np.where(blurred_image < .99, blurred_image,
+                         big_image[int(y / pixel_size):int(y / pixel_size) + image_size,
+                         int(x / pixel_size):int(x / pixel_size) + image_size])
+    else:
+        patch = np.where(blurred_image > .01, blurred_image,
+                         big_image[int(y / pixel_size):int(y / pixel_size) + image_size,
+                         int(x / pixel_size):int(x / pixel_size) + image_size])
+    big_image[int(y / pixel_size):int(y / pixel_size) + image_size,
+    int(x / pixel_size):int(x / pixel_size) + image_size] = patch
 imageio.imwrite(os.path.join(path, 'big_image.png'), (big_image* 255).astype(np.uint8))
 
 ## Save labels

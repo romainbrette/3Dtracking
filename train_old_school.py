@@ -41,10 +41,8 @@ label_path = os.path.join(path, 'labels.csv')
 ### Parameters
 parameters = [('epochs', 'Epochs', 500),
               ('load_checkpoint', 'Load checkpoint', False),
-              ('predict_true_z', 'Predict true z', False), # this exists only for synthetic datasets
-              ('filename_suffix', 'Filename suffix', ''),
-              ('background_subtracted', 'Background subtracted', True) # if it is background subtracted, the background is constant
-              ## this could be found automatically
+              ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
+              ('filename_suffix', 'Filename suffix', '')
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -60,17 +58,12 @@ df = pd.read_csv(label_path)
 
 ## Extract filenames and labels
 filenames = df['filename'].values
-mean_z = df['mean_z'].values
-if 'z' in df:
-    z = df['z'].values
-if P['predict_true_z']:
-    labels = z # but it would be nice to have it as validation though
+if P['predict_sigma']:
+    labels = df['sigma'].values
 else:
-    labels = mean_z
+    labels = df['mean_z'].values
 filenames = [os.path.join(img_path, name) for name in filenames]
 n = len(filenames)
-
-#labels *= .001
 
 ## Load images
 

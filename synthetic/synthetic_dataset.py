@@ -1,8 +1,5 @@
 '''
 Makes a synthetic dataset with defocused cell images to estimate z.
-
-TODO:
-- take actual focused images as basis (with rotations maybe etc.)
 '''
 import numpy as np
 from scipy.ndimage import gaussian_filter
@@ -85,7 +82,7 @@ for i in tqdm.tqdm(np.arange(P['frames'])):
 
 ## Make a big image
 big_image = np.ones((int(P['width']/pixel_size)+image_size, int(P['width']/pixel_size)+image_size))
-density = 10/1e6 # 10/mm2
+density = 5/1e6 # 5/mm2
 N = int(density*P['width']**2)
 for i in range(N):
     ## Position
@@ -94,7 +91,10 @@ for i in range(N):
     z = (x-P['focus_point'])*np.tan(angle) + (np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur']/pixel_size)
-    big_image[int(y/pixel_size):int(y/pixel_size)+image_size, int(x/pixel_size):int(x/pixel_size)+image_size] = blurred_image
+    #print(i, blurred_image.shape, image_size)
+    patch = np.where(blurred_image<.99, blurred_image, big_image[int(y/pixel_size):int(y/pixel_size)+image_size, int(x/pixel_size):int(x/pixel_size)+image_size])
+    big_image[int(y/pixel_size):int(y/pixel_size)+image_size, int(x/pixel_size):int(x/pixel_size)+image_size] = patch
+
 imageio.imwrite(os.path.join(path, 'big_image.png'), (big_image* 255).astype(np.uint8))
 
 ## Save labels
