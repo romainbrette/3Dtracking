@@ -50,7 +50,7 @@ cell_half_width = int(P['cell_width']//(2*pixel_size)) # in pixels
 cell_half_length = int(P['cell_length']//(2*pixel_size))
 
 ### Data frame
-df = pd.DataFrame(columns=['filename', 'z', 'x', 'mean_z'])
+df = pd.DataFrame(columns=['filename', 'z', 'x', 'mean_z', 'sigma'])
 
 ## Blurred image
 def random_image():
@@ -74,23 +74,26 @@ for i in tqdm.tqdm(np.arange(P['frames'])):
     z = mean_z + (np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
     # Blurring
-    blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
+    sigma = abs(z)*P['blur']
+    blurred_image = gaussian_filter(random_image(), sigma=sigma/pixel_size)
 
     # Make the label file
     row = pd.DataFrame(
-        [{'filename': 'im{:05d}.png'.format(i), 'z': z, 'x' : x, 'mean_z' : mean_z}])
+        [{'filename': 'im{:05d}.png'.format(i), 'z': z, 'x' : x, 'mean_z' : mean_z, 'sigma' : sigma}])
     df = pd.concat([df, row], ignore_index=True)
     imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(i)), (blurred_image* 255).astype(np.uint8))
 
 ## Make a big image
 big_image = np.ones((int(P['width']/pixel_size)+image_size, int(P['width']/pixel_size)+image_size))
-for i in range(50):
+density = 10/1e6 # 10/mm2
+N = int(density*P['width']**2)
+for i in range(N):
     ## Position
     x = P['width']*np.random.rand()
     y = P['width']*np.random.rand()
     z = (x-P['focus_point'])*np.tan(angle) + (np.random.rand()-.5)*P['depth'] # z = 0 means in focus
 
-    blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur'])
+    blurred_image = gaussian_filter(random_image(), sigma=abs(z)*P['blur']/pixel_size)
     big_image[int(y/pixel_size):int(y/pixel_size)+image_size, int(x/pixel_size):int(x/pixel_size)+image_size] = blurred_image
 imageio.imwrite(os.path.join(path, 'big_image.png'), (big_image* 255).astype(np.uint8))
 

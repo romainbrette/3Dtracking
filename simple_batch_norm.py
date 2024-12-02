@@ -15,7 +15,7 @@ def create_dataset(num_samples, image_size):
 
 # Hyperparameters
 image_size = 32  # Size of the images (32x32)
-num_samples = 1000  # Total number of samples
+num_samples = 100000  # Total number of samples
 train_split = 0.8  # 80% training data
 
 # Generate dataset
