@@ -6,6 +6,11 @@ Lessons:
 - Use as many examples as you can
 - Adapt the learning rate when loss increases; but this doesn't always work great (stops too quickly)
 - BatchNormalization works if learning is adaptively reduced
+
+tensorflow-macos              2.13.0        update?
+torch                         2.4.0
+numpy                         1.24.3
+python                        3.8.16        probably too old!
 '''
 import pandas as pd
 import os
