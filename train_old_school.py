@@ -27,6 +27,7 @@ from scipy import stats
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 import tqdm
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import sys
 matplotlib.use('TkAgg')
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -50,6 +51,7 @@ save_checkpoint = True
 checkpoint_filename = os.path.join(path,'best_z_'+P['filename_suffix']+'.tf')
 parameter_path = os.path.join(path, 'training_'+P['filename_suffix']+'.yaml')
 history_path = os.path.join(path, 'history_'+P['filename_suffix']+'.csv')
+model_filename = os.path.join(path, 'model_'+P['filename_suffix']+'.txt')
 batch_size = 32
 validation_ratio = 0.2 # proportion of images used for validation
 
@@ -163,17 +165,21 @@ else:
         #Rescaling(1000.) # useful?
     ])
 
+model.summary()
+with open(model_filename, "w") as f:
+    sys.stdout = f  # Redirect output to the file
     model.summary()
+    sys.stdout = sys.__stdout__  # Reset to default
 
 ## Compile the model
 # model.compile(optimizer='rmsprop',
 #               loss='mean_squared_error', metrics=['mae'])
-model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.00001), # default learning_rate .001
+model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.001), # default learning_rate .001
               loss='mean_squared_error', metrics=['mae'])
 
 reduce_lr = ReduceLROnPlateau(monitor='val_loss',  # Monitor validation loss
                               factor=0.5,         # Reduce learning rate by half
-                              patience=500, # this must be adapted to the dataset size
+                              patience=5, # this must be adapted to the dataset size
                               min_lr=1e-7,        # Minimum learning rate
                               verbose=1)
 
@@ -213,6 +219,8 @@ P['time'] = t2-t1
 # print(f'Validation loss: {loss}, Validation MAE: {mae}')
 # P['loss'] = loss
 # P['mae'] = mae
+P['mae'] = history.history['mae'][-1]
+P['val_mae'] = history.history['val_mae'][-1]
 model.save(os.path.join(path,'z_'+P['filename_suffix']+'.tf'))
 
 ## Save training history
