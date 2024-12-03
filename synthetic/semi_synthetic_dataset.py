@@ -39,6 +39,7 @@ parameters = [('width', 'Width (um)', 12000),
               ('focus_point', 'Focus point (um)', 12000), # x position where in focus
               ('pixel_size', 'Pixel size (um)', 5.),
               ('frames', 'Number of images', 10000),
+              ('image_size', 'Image size (um)', 200),
               ('blur', 'Blur factor', 0.0001) # proportionality factor between focal distance and blur size
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
@@ -46,11 +47,16 @@ P = param_dialog.value
 
 pixel_size = P['pixel_size']
 angle = P['angle']*np.pi/180.
+P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
+image_size = P['image_size']
 
 ### Load images
 files = [f for f in os.listdir(image_path) if f.endswith('.tiff') or f.endswith('.tif') or f.endswith('.png')]
 images = [iio.imread(os.path.join(image_path, f)) for f in tqdm.tqdm(files)]
-image_size = images[0].shape[1] # assume square
+image_size_original = images[0].shape[1] # assume square
+if image_size_original!=image_size: # crop
+    x1 = image_size_original//2 - image_size//2
+    images = [I[x1:x1+image_size, x1:x1+image_size] for I in tqdm.tqdm(images)]
 
 ### Check whether background is white or black (assuming uint8)
 if images[0].mean()<128: # black

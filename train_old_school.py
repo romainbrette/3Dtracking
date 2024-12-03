@@ -33,6 +33,7 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 import tqdm
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import sys
+from tensorflow.keras.applications import ResNet50, EfficientNetV2B0
 matplotlib.use('TkAgg')
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -53,7 +54,7 @@ parameters = [('epochs', 'Epochs', 500),
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
 save_checkpoint = True
-checkpoint_filename = os.path.join(path,'best_z_'+P['filename_suffix']+'.tf')
+checkpoint_filename = os.path.join(path, 'best_z_'+P['filename_suffix']+'.tf')
 parameter_path = os.path.join(path, 'training_'+P['filename_suffix']+'.yaml')
 history_path = os.path.join(path, 'history_'+P['filename_suffix']+'.csv')
 model_filename = os.path.join(path, 'model_'+P['filename_suffix']+'.txt')
@@ -84,6 +85,7 @@ def load_image(filename, black_background=True):
         img = img / 255.0  # Normalize pixel values to [0, 1]
     else:
         img = 1.-img / 255.0  # Normalize pixel values to [0, 1]
+    img = tf.image.grayscale_to_rgb(img)
     return img
 
 ## Get image shape
@@ -104,7 +106,6 @@ else:
 ## Create a dataset
 images = np.array([load_image(os.path.join(img_path, file), black_background=black_background) for file in tqdm.tqdm(filenames)])
 labels = np.array(labels)
-print(len(images), len(labels))
 print(images.min(), images.max(), np.std(images))
 
 
@@ -113,6 +114,28 @@ if P['load_checkpoint']:
     print('Loading previous model')
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
+elif True:
+    # Load a pretrained model
+    base_model = EfficientNetV2B0(weights='imagenet', include_top=False, input_shape=shape)
+
+    # Build regression model
+    model = Sequential([
+        base_model,
+        GlobalAveragePooling2D(),
+        Dense(128, activation='relu'),
+        Dense(1, activation='linear')  # Single continuous output
+    ])
+elif True:
+    # Load a pretrained model
+    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=shape)
+
+    # Build regression model
+    model = Sequential([
+        base_model,
+        GlobalAveragePooling2D(),
+        Dense(128, activation='relu'),
+        Dense(1, activation='linear')  # Single continuous output
+    ])
 else:
     # model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
     #     Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
@@ -141,11 +164,15 @@ else:
 
     model = Sequential([
         Conv2D(32, (3, 3), kernel_initializer='he_normal', input_shape=shape, activation="relu"),
-        #BatchNormalization(),
+        BatchNormalization(),
         MaxPooling2D((2, 2)),
 
         Conv2D(64, (3, 3), kernel_initializer='he_normal', activation="relu"),
-        #BatchNormalization(),
+        BatchNormalization(),
+        MaxPooling2D((2, 2)),
+
+        Conv2D(128, (3, 3), kernel_initializer='he_normal', activation="relu"),
+        BatchNormalization(),
         MaxPooling2D((2, 2)),
 
         # Conv2D(16, (3, 3), kernel_initializer='he_normal'),
@@ -182,9 +209,9 @@ with open(model_filename, "w") as f:
 model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.001), # default learning_rate .001
               loss='mean_squared_error', metrics=['mae'])
 
-reduce_lr = ReduceLROnPlateau(monitor='val_loss',  # Monitor validation loss
+reduce_lr = ReduceLROnPlateau(monitor='loss',
                               factor=0.5,         # Reduce learning rate by half
-                              patience=5, # this must be adapted to the dataset size
+                              patience=2, # this must be adapted to the dataset size
                               min_lr=1e-7,        # Minimum learning rate
                               verbose=1)
 
@@ -218,12 +245,6 @@ history = model.fit(
 )
 t2 = time()
 P['time'] = t2-t1
-
-# Evaluate the model
-# loss, mae = model.evaluate(val_generator)
-# print(f'Validation loss: {loss}, Validation MAE: {mae}')
-# P['loss'] = loss
-# P['mae'] = mae
 P['mae'] = history.history['mae'][-1]
 P['val_mae'] = history.history['val_mae'][-1]
 model.save(os.path.join(path,'z_'+P['filename_suffix']+'.tf'))
@@ -245,5 +266,6 @@ plt.legend(['Train', 'Val'], loc='upper right')
 plt.show()
 
 ## Save parameters
+print(parameter_path, P['filename_suffix'])
 with open(parameter_path, 'w') as f:
     yaml.dump(P, f)
