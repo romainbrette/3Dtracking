@@ -34,6 +34,9 @@ import tqdm
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import sys
 from tensorflow.keras.applications import ResNet50, EfficientNetV2B0
+from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, MaxPooling2D, Concatenate
+from tensorflow.keras.models import Model
+
 matplotlib.use('TkAgg')
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -85,7 +88,7 @@ def load_image(filename, black_background=True):
         img = img / 255.0  # Normalize pixel values to [0, 1]
     else:
         img = 1.-img / 255.0  # Normalize pixel values to [0, 1]
-    img = tf.image.grayscale_to_rgb(img)
+    #img = tf.image.grayscale_to_rgb(img)
     return img
 
 ## Get image shape
@@ -108,13 +111,72 @@ images = np.array([load_image(os.path.join(img_path, file), black_background=bla
 labels = np.array(labels)
 print(images.min(), images.max(), np.std(images))
 
+## Image moments layer
+class ImageMomentsLayer(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(ImageMomentsLayer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        # No trainable weights
+        pass
+
+    def call(self, inputs):
+        """
+        Inputs: Tensor of shape (batch_size, height, width, channels)
+        Outputs: Tensor of shape (batch_size, 10), where 10 corresponds
+                 to moments up to order 3 (m00, m01, m10, m11, m20, etc.)
+        """
+        # Ensure grayscale images
+        if inputs.shape[-1] > 1:
+            inputs = tf.image.rgb_to_grayscale(inputs)
+
+        # Convert to binary (thresholding at 0.5 normalized range)
+        binary = tf.cast(inputs > 0.5, tf.float32)
+
+        # Image dimensions
+        batch_size = tf.shape(inputs)[0]
+        height = tf.shape(inputs)[1]
+        width = tf.shape(inputs)[2]
+
+        # Generate coordinate grids
+        x_coords = tf.range(width, dtype=tf.float32)
+        y_coords = tf.range(height, dtype=tf.float32)
+        x_coords, y_coords = tf.meshgrid(x_coords, y_coords)
+
+        # Expand dimensions to broadcast over the batch
+        x_coords = tf.expand_dims(x_coords, axis=0)  # Shape (1, height, width)
+        y_coords = tf.expand_dims(y_coords, axis=0)  # Shape (1, height, width)
+
+        # Broadcast to match input shape
+        x_coords = tf.tile(x_coords, [batch_size, 1, 1])  # Shape (batch_size, height, width)
+        y_coords = tf.tile(y_coords, [batch_size, 1, 1])  # Shape (batch_size, height, width)
+
+        # Moments calculation
+        m00 = tf.reduce_sum(binary, axis=[1, 2])
+        m10 = tf.reduce_sum(binary * x_coords, axis=[1, 2])
+        m01 = tf.reduce_sum(binary * y_coords, axis=[1, 2])
+        m11 = tf.reduce_sum(binary * x_coords * y_coords, axis=[1, 2])
+        m20 = tf.reduce_sum(binary * tf.square(x_coords), axis=[1, 2])
+        m02 = tf.reduce_sum(binary * tf.square(y_coords), axis=[1, 2])
+        m21 = tf.reduce_sum(binary * x_coords * tf.square(y_coords), axis=[1, 2])
+        m12 = tf.reduce_sum(binary * y_coords * tf.square(x_coords), axis=[1, 2])
+        m30 = tf.reduce_sum(binary * tf.pow(x_coords, 3), axis=[1, 2])
+        m03 = tf.reduce_sum(binary * tf.pow(y_coords, 3), axis=[1, 2])
+
+        # Concatenate moments into a single feature vector
+        moments = tf.stack([m00, m10, m01, m11, m20, m02, m21, m12, m30, m03], axis=1)
+
+        return moments
+
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], 10)
 
 ## Load weights and model from the checkpoint
 if P['load_checkpoint']:
     print('Loading previous model')
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
-elif True:
+elif False:
     # Load a pretrained model
     base_model = EfficientNetV2B0(weights='imagenet', include_top=False, input_shape=shape)
 
@@ -122,6 +184,36 @@ elif True:
     model = Sequential([
         base_model,
         GlobalAveragePooling2D(),
+        Dense(128, activation='relu'),
+        Dense(1, activation='linear')  # Single continuous output
+    ])
+elif True:
+    # Moments-based model with convolution too
+    # Input layer for image data
+    input_layer = Input(shape=shape)  # Example size of 64x64 grayscale image
+
+    # Branch 1: Image moments
+    moments_layer = ImageMomentsLayer()(input_layer)
+
+    # Branch 2: Conv2D layers
+    conv_layer = Conv2D(32, (3, 3), activation='relu', padding='same')(input_layer)
+    #pool_layer = MaxPooling2D((2, 2))(conv_layer)
+    #flat_layer = Flatten()(pool_layer)
+    flat_layer = GlobalAveragePooling2D(conv_layer)
+
+    # Combine both branches
+    combined = Concatenate()([moments_layer, flat_layer])
+
+    # Dense layers for regression
+    dense_layer = Dense(64, activation='relu')(combined)
+    output_layer = Dense(1, activation='linear')(dense_layer)
+
+    # Build model
+    model = Model(inputs=input_layer, outputs=output_layer)
+elif True:
+    # Moments-based model
+    model = Sequential([
+        ImageMomentsLayer(),
         Dense(128, activation='relu'),
         Dense(1, activation='linear')  # Single continuous output
     ])
