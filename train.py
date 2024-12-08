@@ -24,6 +24,9 @@ from time import time
 import numpy as np
 from scipy import stats
 from tensorflow.keras.regularizers import l2
+import sys
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
+
 AUTOTUNE = tf.data.AUTOTUNE
 
 root = tk.Tk()
@@ -37,7 +40,7 @@ label_path = os.path.join(path, 'labels.csv')
 ### Parameters
 parameters = [('epochs', 'Epochs', 500),
               ('load_checkpoint', 'Load checkpoint', False),
-              ('predict_true_z', 'Predict true z', False), # this exists only for synthetic datasets
+              ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
               ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
               ('min_scaling', 'Minimum intensity scaling', 0.5),
@@ -49,7 +52,8 @@ save_checkpoint = True
 checkpoint_filename = os.path.join(path,'best_z_'+P['filename_suffix']+'.tf')
 parameter_path = os.path.join(path, 'training_'+P['filename_suffix']+'.yaml')
 history_path = os.path.join(path, 'history_'+P['filename_suffix']+'.csv')
-batch_size = 64
+model_filename = os.path.join(path, 'model_'+P['filename_suffix']+'.txt')
+batch_size = 128
 validation_ratio = 0.2 # proportion of images used for validation
 
 ## Read data
@@ -57,24 +61,32 @@ df = pd.read_csv(label_path)
 
 ## Extract filenames and labels
 filenames = df['filename'].values
-mean_z = df['mean_z'].values.reshape(-1, 1)
-if 'z' in df:
-    z = df['z'].values.reshape(-1, 1)
-if P['predict_true_z']:
-    labels = z # but it would be nice to have it as validation though
+if P['predict_sigma']:
+    if 'sigma' in df:
+        labels = df['sigma'].values
+    else:
+        labels = df['z'].values
 else:
-    labels = mean_z
+    try:
+        labels = df['mean_z'].values
+    except KeyError:
+        labels = df['z'].values
 filenames = [os.path.join(img_path, name) for name in filenames]
 n = len(filenames)
 
 ## Load images
 
 # Create a mapping function for loading and preprocessing images
-def load_image(filename, label):
+def load_image(filename, label, black_background=True):
     # Load the image from the file path
     img = tf.io.read_file(filename)
     img = tf.image.decode_png(img, channels=1)
-    #img = img / 255.0  # Normalize pixel values to [0, 1]
+    img = tf.cast(img, dtype=tf.float32)
+    if black_background:
+        img = img / 255.0  # Normalize pixel values to [0, 1]
+    else:
+        img = 1.-img / 255.0  # Normalize pixel values to [0, 1]
+    #img = tf.image.grayscale_to_rgb(img)
     return img, label
 
 ## Get image shape
@@ -86,7 +98,7 @@ print("Image shape:", shape)
 ## Check whether background is white or black (assuming uint8)
 most_frequent_value, _ = stats.mode(image.flatten())
 print("Background value:", most_frequent_value)
-if image.mean()<128: # black
+if image.mean()<.5: # black
     print('Black background')
     black_background = True
 else:
@@ -94,7 +106,7 @@ else:
 
 # Create a tf.data.Dataset from filenames and labels
 dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
-dataset = dataset.map(load_image, num_parallel_calls=tf.data.AUTOTUNE)
+dataset = dataset.map(lambda filename, label: load_image(filename, label, black_background), num_parallel_calls=tf.data.AUTOTUNE)
 
 ## Make training and validation sets
 train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=False)
@@ -128,12 +140,12 @@ if P['background_subtracted']:
 else:
     intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
 data_augmentation = tf.keras.Sequential([
-    layers.Rescaling(1./255),
+    #layers.Rescaling(1./255),
     #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
     intensity_scaling
     #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
 ])
-just_rescaling = layers.Rescaling(1./255)
+#just_rescaling = layers.Rescaling(1./255)
 
 train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 #val_dataset = val_dataset.map(lambda x, y: (just_rescaling(x), y), num_parallel_calls=AUTOTUNE)
@@ -150,6 +162,15 @@ if P['load_checkpoint']:
     print('Loading previous model')
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
+elif True:
+    model = Sequential([
+        Flatten(input_shape=shape),
+        Dense(64, activation='leaky_relu'),
+        BatchNormalization(),
+        Dense(64, activation='leaky_relu'),
+        BatchNormalization(),
+        Dense(1)
+    ])
 else:
     # model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
     #     Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
@@ -177,22 +198,14 @@ else:
     # ])
 
     model = Sequential([
-        Conv2D(16, (3, 3), kernel_initializer='he_normal', input_shape=shape),
-        #BatchNormalization(),  # Doesn't seem to work
+        Conv2D(32, (3, 3), kernel_initializer='he_normal', input_shape=shape),
+        BatchNormalization(),  # Doesn't seem to work
         LeakyReLU(),  # Activation après BN
         MaxPooling2D((2, 2)),
 
-        Conv2D(16, (3, 3), kernel_initializer='he_normal'),
-        #BatchNormalization(),
+        Conv2D(64, (3, 3), kernel_initializer='he_normal'),
+        BatchNormalization(),
         LeakyReLU(),  # Activation après BN
-        MaxPooling2D((2, 2)),
-
-        Conv2D(16, (3, 3), kernel_initializer='he_normal'),
-        LeakyReLU(),
-        MaxPooling2D((2, 2)),
-
-        Conv2D(16, (3, 3), kernel_initializer='he_normal'),
-        LeakyReLU(),
         MaxPooling2D((2, 2)),
 
         #GlobalAveragePooling2D(),
@@ -202,13 +215,23 @@ else:
         Dense(1)
     ])
 
+model.summary()
+with open(model_filename, "w") as f:
+    sys.stdout = f  # Redirect output to the file
     model.summary()
+    sys.stdout = sys.__stdout__  # Reset to default
 
 ## Compile the model
-model.compile(optimizer='rmsprop', # default learning_rate .001
+model.compile(optimizer='adam', # default learning_rate .001
               loss='mean_squared_error', metrics=['mae'])
 #model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0005), # default learning_rate .001
 #              loss='mean_squared_error', metrics=['mae'])
+
+reduce_lr = ReduceLROnPlateau(monitor='loss',
+                              factor=0.5,         # Reduce learning rate by half
+                              patience=4, # this must be adapted to the dataset size
+                              min_lr=1e-7,        # Minimum learning rate
+                              verbose=1)
 
 ## Define the ModelCheckpoint callback
 checkpoint = ModelCheckpoint(
@@ -221,9 +244,9 @@ checkpoint = ModelCheckpoint(
 )
 
 if save_checkpoint:
-    callbacks = [checkpoint]
+    callbacks = [checkpoint, reduce_lr]
 else:
-    callbacks = []
+    callbacks = [reduce_lr]
 
 ## Train
 t1 = time()
