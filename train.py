@@ -26,6 +26,7 @@ from scipy import stats
 from tensorflow.keras.regularizers import l2
 import sys
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
+from augmentation.augmentation import *
 
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -112,31 +113,9 @@ dataset = dataset.map(lambda filename, label: load_image(filename, label, black_
 train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=False)
 
 ## Data augmentation
-class RandomIntensityScaling(tf.keras.layers.Layer):
-    def __init__(self, min_scale=0.8, max_scale=1.2, **kwargs):
-        super().__init__(**kwargs)
-        self.min_scale = min_scale
-        self.max_scale = max_scale
-
-    def call(self, inputs):
-
-        scale = tf.random.uniform([], self.min_scale, self.max_scale)
-        if black_background:
-            scaled_image = inputs * scale
-        else:
-            scaled_image = 1. - (1.-inputs) * scale
-        return tf.clip_by_value(scaled_image, 0.0, 1.0)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            "min_scale": self.min_scale,
-            "max_scale": self.max_scale,
-        })
-        return config
 
 if P['background_subtracted']:
-    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
+    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'], black_background=black_background)
 else:
     intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
 data_augmentation = tf.keras.Sequential([
