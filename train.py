@@ -3,7 +3,6 @@ Train a network to estimate z from Paramecium image.
 
 TODO:
 - Metrics: on both z and z_mean
-- Predict sigma instead of true z
 '''
 import pandas as pd
 import os
@@ -44,8 +43,8 @@ parameters = [('epochs', 'Epochs', 500),
               ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
               ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
-              ('min_scaling', 'Minimum intensity scaling', 0.5),
-              ('max_scaling', 'Maximum intensity scaling', 1.2)
+              ('min_scaling', 'Minimum intensity scaling', 1),
+              ('max_scaling', 'Maximum intensity scaling', 1.)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -54,11 +53,18 @@ checkpoint_filename = os.path.join(path,'best_z_'+P['filename_suffix']+'.tf')
 parameter_path = os.path.join(path, 'training_'+P['filename_suffix']+'.yaml')
 history_path = os.path.join(path, 'history_'+P['filename_suffix']+'.csv')
 model_filename = os.path.join(path, 'model_'+P['filename_suffix']+'.txt')
+dataset_parameter_path = os.path.join(path, 'labels.yaml')
 batch_size = 128
 validation_ratio = 0.2 # proportion of images used for validation
 
 ## Read data
 df = pd.read_csv(label_path)
+
+## Read dataset parameters
+with open(dataset_parameter_path, 'r') as f:
+    P_dataset = yaml.safe_load(f)
+# Normalization factor
+normalization = P_dataset['normalization']
 
 ## Extract filenames and labels
 filenames = df['filename'].values
@@ -78,15 +84,13 @@ n = len(filenames)
 ## Load images
 
 # Create a mapping function for loading and preprocessing images
-def load_image(filename, label, black_background=True):
+def load_image(filename, label):
     # Load the image from the file path
     img = tf.io.read_file(filename)
     img = tf.image.decode_png(img, channels=1)
     img = tf.cast(img, dtype=tf.float32)
-    if black_background:
-        img = img / 255.0  # Normalize pixel values to [0, 1]
-    else:
-        img = 1.-img / 255.0  # Normalize pixel values to [0, 1]
+    img = img*normalization # normalize so as to have mean image = 1.0
+    #img = img / 255.0  # Normalize pixel values to [0, 1]
     #img = tf.image.grayscale_to_rgb(img)
     return img, label
 
@@ -96,18 +100,9 @@ image = np.array(image)
 shape = image.shape
 print("Image shape:", shape)
 
-## Check whether background is white or black (assuming uint8)
-most_frequent_value, _ = stats.mode(image.flatten())
-print("Background value:", most_frequent_value)
-if image.mean()<.5: # black
-    print('Black background')
-    black_background = True
-else:
-    black_background = False
-
 # Create a tf.data.Dataset from filenames and labels
 dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
-dataset = dataset.map(lambda filename, label: load_image(filename, label, black_background), num_parallel_calls=tf.data.AUTOTUNE)
+dataset = dataset.map(lambda filename, label: load_image(filename, label), num_parallel_calls=tf.data.AUTOTUNE)
 
 ## Make training and validation sets
 train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=False)
@@ -115,7 +110,7 @@ train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=va
 ## Data augmentation
 
 if P['background_subtracted']:
-    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'], black_background=black_background)
+    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
 else:
     intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
 data_augmentation = tf.keras.Sequential([

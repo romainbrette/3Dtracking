@@ -1,10 +1,9 @@
 '''
 Makes a dataset from a movie or tiff folder.
-
-TODO: remove cells with close neighbors
-
 Assumes the trajectories are in pixel.
+
 TODO:
+- remove cells with close neighbors
 - load movies (not just tiffs)
 - automatic focus determination
 '''
