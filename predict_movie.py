@@ -18,6 +18,8 @@ import imageio.v3 as iio
 import tqdm
 from tensorflow.keras.models import load_model
 import tensorflow as tf
+from movie.movie import *
+from movie.cell_extraction import *
 
 root = tk.Tk()
 root.withdraw()
@@ -35,10 +37,6 @@ model_filename = filedialog.askdirectory(initialdir=os.path.dirname(movie_filena
 data = magic_load_trajectories(traj_filename)
 data['z_predict'] = np.nan
 
-### Get image size
-image = iio.imread(movie_filename)
-width, height = image.shape[1], image.shape[0]
-
 ### Parameters
 parameters = [('pixel_size', 'Pixel size (um)', 5.)]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
@@ -52,46 +50,24 @@ model = load_model(model_filename)
 image_size = model.input_shape[0]
 half_img_size = int(image_size/2)
 
-### Iterate through frames
+### Open movie
 image_path = os.path.dirname(movie_filename)
-files = [f for f in os.listdir(image_path) if f.endswith('.tiff') or f.endswith('.tif')]
-files.sort()
+movie = MovieFolder(image_path, auto_invert=True)
 
-for n, file in enumerate(tqdm.tqdm(files)):
-    image = iio.imread(os.path.join(image_path, files[n]))
-    width, height = image.shape[1], image.shape[0]
+### Get image size
+image = movie.current_frame()
+width, height = image.shape[1], image.shape[0]
+n_frames = data['frame'].nunique()
 
-    data_frame = data[data['frame'] == n]
-
-    snippets = []
-    for _, row in data_frame.iterrows():
-        # Make the window
-        x0, y0 = row['x'], row['y']
-
-        # Crop
-        x1, y1 = x0-half_img_size, y0-half_img_size
-        x2, y2 = x1+image_size, y1+image_size
-        if (x1 < 0) or (y1 < 0) or (x2 > width) or (y2 > height):  # skip if outside the image
-            # snippet = np.zeros((img_size, img_size))
-            ## this could be better, with padding
-            snippet = None
-        else:
-            # Crop image
-            # Apparently y=0 is the top
-            snippet = image[int(y1):int(y2), int(x1):int(x2)]
-
-        ## Apply model
-        snippets.append(snippet)
-        # snippet = np.expand_dims(snippet, axis=0)  # Add batch dimension
-        # prediction = model.predict(snippet)
-        # z = prediction[0][0]
-        # print(z)
-    full_snippets = [snippet for snippet in snippets if snippet is not None]
-    which_ones = [snippet is not None for snippet in snippets]
-    full_predictions = model.predict(np.array(full_snippets)).flatten()
-    predictions = np.ones(len(snippets)) * np.nan
-    predictions[which_ones] = full_predictions
-    data.loc[data['frame'] == n, 'z'] = predictions
+### Iterate through frames
+previous_position = 0
+for image in tqdm.tqdm(movie.frames(), total=n_frames):
+    data_frame = data[data['frame'] == previous_position]
+    snippets = extract_cells(image, data_frame, image_size, crop=True)
+    predictions = model.predict(snippets)
+    intensities = np.mean([np.mean(snippet) for snippet in snippets])
+    data.loc[data['frame'] == previous_position, 'z'] = predictions
+    previous_position = movie.position
 
 print(data.head())
 

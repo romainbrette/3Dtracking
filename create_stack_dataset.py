@@ -34,7 +34,7 @@ if not os.path.exists(img_path):
     os.mkdir(img_path)
 
 ### Parameters
-parameters = [('step', 'Step (um)', 100),
+parameters = [('step', 'Step (um)', -100),
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200)
               ]
