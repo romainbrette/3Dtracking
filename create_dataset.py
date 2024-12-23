@@ -1,6 +1,8 @@
 '''
 Makes a dataset from a movie or tiff folder.
 
+TODO: remove cells with close neighbors
+
 Assumes the trajectories are in pixel.
 TODO:
 - load movies (not just tiffs)
@@ -15,8 +17,9 @@ import yaml
 import tkinter as tk
 from tracking.load_tracking import *
 import imageio
-import imageio.v3 as iio
 import tqdm
+from movie.movie import *
+from movie.cell_extraction import *
 
 root = tk.Tk()
 root.withdraw()
@@ -33,16 +36,12 @@ parameter_path = os.path.join(path, 'labels.yaml')
 if not os.path.exists(img_path):
     os.mkdir(img_path)
 
-### Get image size
-image = iio.imread(movie_filename)
-width, height = image.shape[1], image.shape[0]
-
 ### Parameters
 parameters = [('angle', 'Angle (°)', 19.2), # signed
               ('focus_point', 'Focus point (%)', 100), # x position where in focus
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200),
-              ('nimages', 'Number of images', 10000)
+              ('nimages', 'Number of images', 0)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -52,56 +51,56 @@ angle = P['angle']*np.pi/180.
 P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
 image_size = P['image_size']
 half_img_size = int(image_size/2)
-P['focus_point'] = P['focus_point']/100*width
 
 ### Calculate the interval between frames
 total_frames = data['frame'].nunique()
-n_frames = int(P['nimages']/len(data)*total_frames)
-frame_increment = int(total_frames/n_frames)
+if P['nimages'] == 0: # all images
+    frame_increment = 1
+    n_frames = total_frames
+else:
+    n_frames = int(P['nimages']/len(data)*total_frames)
+    frame_increment = int(total_frames/n_frames)
+
+### Open movie
+image_path = os.path.dirname(movie_filename)
+movie = MovieFolder(image_path, step=frame_increment, auto_invert=True)
+
+### Get image size
+image = movie.current_frame()
+width, height = image.shape[1], image.shape[0]
+P['focus_point'] = P['focus_point']/100*width
 
 ### Data frame
 df = pd.DataFrame(columns=['filename', 'mean_z'])
+# could be vectorized:
+#mean_z = (df['x'] - P['focus_point']) * np.tan(P['angle'])  # mean z at the x position
+#mean_z = mean_z.iloc[::frame_increment]
 
-### Iterate through frames
-image_path = os.path.dirname(movie_filename)
-files = [f for f in os.listdir(image_path) if f.endswith('.tiff') or f.endswith('.tif')]
-files.sort()
-
-n = 0
 j = 0
-for i in tqdm.tqdm(range(n_frames)):
-    if n>=len(files):
-        break
-    image = iio.imread(os.path.join(image_path, files[n]))
-    width, height = image.shape[1], image.shape[0]
+intensities = []
+previous_position = 0
+for image in tqdm.tqdm(movie.frames(), total=n_frames):
+    data_frame = data[data['frame'] == previous_position]
+    snippets = extract_cells(image, data_frame, image_size, crop=True)
+    intensities.extend([np.mean(snippet) for snippet in snippets])
 
-    data_frame = data[data['frame'] == n]
-
+    i = 0
     for _, row in data_frame.iterrows():
-        # Make the window
-        x0, y0 = row['x'], row['y']
-        z = (x0 - P['focus_point']) * np.tan(P['angle'])  # mean z at the x position
-
-        # Crop
-        x1, y1 = x0-half_img_size, y0-half_img_size
-        x2, y2 = x1+image_size, y1+image_size
-        if (x1<0) or (y1<0) or (x2>width) or (y2>height): # skip if outside the image
-            continue
-
-        # Crop image
-        # Apparently y=0 is the top
-        snippet = image[int(y1):int(y2), int(x1):int(x2)]
+        j += 1
+        z = (row['x'] - P['focus_point']) * np.tan(angle)  # mean z at the x position
 
         # Make the label file
         row = pd.DataFrame([{'filename' : 'im{:05d}.png'.format(j), 'mean_z' : z}])
         df = pd.concat([df, row], ignore_index=True)
 
         # Save image
-        imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(j)), snippet)
+        imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(j)), snippets[i])
 
-        j += 1
+        i += 1
 
-    n += frame_increment
+    previous_position = movie.position
+
+P['normalization'] = float(1./np.mean(intensities))
 
 ## Save labels
 df.to_csv(label_path, index=False)
