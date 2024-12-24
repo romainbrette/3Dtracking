@@ -2,8 +2,6 @@
 Predict z on a movie (tiff folder).
 
 IN PROGRESS
-
-TODO: padding when images are near the border
 '''
 import numpy as np
 import os

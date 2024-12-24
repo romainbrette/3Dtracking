@@ -158,7 +158,7 @@ elif False:
         Dense(161, activation='leaky_relu'),
         Dense(1)
     ])
-elif True:
+elif True: ## I think this one generalizes better
     model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
         Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),
