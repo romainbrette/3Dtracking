@@ -19,11 +19,20 @@ root.withdraw()
 path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a dataset folder')
 img_path = os.path.join(path, 'images')
 label_path = os.path.join(path, 'labels.csv')
-output_path = os.path.join(path, 'labels_with_prediction.csv')
 dataset_parameter_path = os.path.join(path, 'labels.yaml')
 
 ## Model
 model_filename = filedialog.askdirectory(initialdir=path, message='Choose a model')
+
+## Parameters
+parameters = [('suffix', 'Suffix', '')]
+param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
+P = param_dialog.value
+
+if P['suffix'] == '':
+    output_path = os.path.join(path, 'labels_with_prediction.csv')
+else:
+    output_path = os.path.join(path, 'labels_with_prediction_'+P['suffix']+'.csv')
 
 ## Load data
 df = pd.read_csv(label_path)

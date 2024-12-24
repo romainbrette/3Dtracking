@@ -68,7 +68,6 @@ with open(dataset_parameter_path, 'r') as f:
     P_dataset = yaml.safe_load(f)
 # Normalization factor
 normalization = P_dataset.get('normalization', 1.)
-print(normalization)
 
 ## Extract filenames and labels
 filenames = df['filename'].values
@@ -149,12 +148,23 @@ elif False:
         BatchNormalization(),
         Dense(1)
     ])
+elif False:
+    model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
+        Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
+        MaxPooling2D((2, 2)),
+        Conv2D(87, (5, 5), activation='leaky_relu'),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(161, activation='leaky_relu'),
+        Dense(1)
+    ])
 elif True:
     model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
         Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),
         Conv2D(87, (5, 5), activation='leaky_relu'),
         MaxPooling2D((2, 2)),
+        GlobalAveragePooling2D(),
         Flatten(),
         Dense(161, activation='leaky_relu'),
         Dense(1)

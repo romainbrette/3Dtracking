@@ -80,20 +80,21 @@ intensities = []
 previous_position = 0
 for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
-    snippets = extract_cells(image, data_frame, image_size, crop=True)
-    intensities.extend([np.mean(snippet) for snippet in snippets])
+    snippets = extract_cells(image, data_frame, image_size, crop=True, borders=False) # remove border cells because they give away x and therefore z
+    intensities.extend([np.mean(snippet) for snippet in snippets if snippet is not None])
 
-    i = 0
+    i = 0 # this is snippet number
     for _, row in data_frame.iterrows():
-        j += 1
-        z = (row['x'] - P['focus_point']) * np.tan(angle)  # mean z at the x position
+        if snippets[i] is not None:
+            j += 1 # this is image number
+            z = (row['x'] - P['focus_point']) * np.tan(angle)  # mean z at the x position
 
-        # Make the label file
-        row = pd.DataFrame([{'filename' : 'im{:05d}.png'.format(j), 'mean_z' : z}])
-        df = pd.concat([df, row], ignore_index=True)
+            # Make the label file
+            row = pd.DataFrame([{'filename' : 'im{:05d}.png'.format(j), 'mean_z' : z}])
+            df = pd.concat([df, row], ignore_index=True)
 
-        # Save image
-        imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(j)), snippets[i])
+            # Save image
+            imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(j)), snippets[i])
 
         i += 1
 

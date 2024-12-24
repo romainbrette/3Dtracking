@@ -7,10 +7,11 @@ from scipy import stats
 
 __all__ = ['extract_cells']
 
-def extract_cells(image, data_frame, size, fill_value=0, crop=False):
+def extract_cells(image, data_frame, size, fill_value=0, crop=False, borders=True):
     '''
     Extract cell images from a big image with cell coordinates in pixel.
-    `size` is the size of the output image.
+    * `size`: size of the output image
+    * `borders`: if `True`, keep cells without bounding box crossing the border
     '''
     image_height, image_width = image.shape
 

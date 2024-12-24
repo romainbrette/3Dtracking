@@ -81,7 +81,7 @@ for i, subfolder in enumerate(folders):
     previous_position = 0
     for image in tqdm.tqdm(movie.frames(), total=n_frames):
         data_frame = data[data['frame'] == previous_position]
-        snippets = extract_cells(image, data_frame, image_size, crop=True)
+        snippets = extract_cells(image, data_frame, image_size, crop=True) # border cells are kept
         intensities.extend([np.mean(snippet) for snippet in snippets])
 
         i = 0
