@@ -23,8 +23,8 @@ Dimensions must be in pixel.
 
 3. Make predictions on a movie (`predict_movie.py`) or on a dataset (`predict_dataset.py`).
 
-4. Evaluate predictions on a dataset with `evaluate.py` (real dataset) or
-`evaluate_synthetic` (synthetic dataset).
+4. Evaluate predictions on a dataset with `evaluate.py` (tilted dataset),
+`evaluate_stack` (stack dataset) or `evaluate_synthetic` (synthetic dataset).
 
 ## File structure
 
