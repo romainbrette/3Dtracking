@@ -1,16 +1,35 @@
 # Three-dimensional tracking of protists from two-dimensional microscopy images
 
 ## Requirements
-- tensorflow
+- `tensorflow`
+- `keras`
+- `imageio` (for reading images and movies)
 
 ## 2D tracking
-This code assumes that 2D tracking have already be extracted from the movie. This can be done with various tools,
+This code assumes that 2D tracks have already been extracted from the movie. This can be done with various tools,
 such as Fasttrack or Fiji.
+The trajectory file can be a Fasttrack file, or a simple csv/tsv file with fields x, y and frame.
+Dimensions must be in pixel.
+
+## Typical workflow
+1. Make a training data set. This can be done with:
+  - `create_dataset.py` for a movie on a tilted slide;
+  - `create_stack_dataset.py` for movies on horizontal slides at several known z positions;
+  - `synthetic/synthetic_dataset.py` for an artificial dataset with blurred ellipses.
+  - `synthetic/semi_synthetic_dataset.py` for a semi-artificial dataset made of blurred cell images.
+
+2. Train with `train.py`. Training can be with respect to z or, in the case of a synthetic dataset, sigma
+(the amount of blurring).
+
+3. Make predictions on a movie (`predict_movie.py`) or on a dataset (`predict_dataset.py`).
+
+4. Evaluate predictions on a dataset with `evaluate.py` (real dataset) or
+`evaluate_synthetic` (synthetic dataset).
 
 ## File structure
 
 - `create_dataset.py` creates a labeled dataset of cell images from a tiff folder (movie) and a trajectory file.
-The trajectory file can be a Fasttrack file, or a simple csv file with fields x, y and frame. The movie is taken
+The movie is taken
 on a tilted slide, so that the z position of the slide surface is taken as the label.
 - `train.py` trains the model on a labeled dataset.
 - `predict_movie.py` applies the trained model on a tiff folder (movie) with trajectory file, and adds a column

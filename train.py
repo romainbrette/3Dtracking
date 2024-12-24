@@ -42,9 +42,9 @@ parameters = [('epochs', 'Epochs', 500),
               ('load_checkpoint', 'Load checkpoint', False),
               ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
-              ('background_subtracted', 'Background subtracted', True) # if it is background subtracted, the background is constant # could be done automatically
-              #('min_scaling', 'Minimum intensity scaling', 1),
-              #('max_scaling', 'Maximum intensity scaling', 1.)
+              ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
+              ('min_scaling', 'Minimum intensity scaling', 1.),
+              ('max_scaling', 'Maximum intensity scaling', 1.)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -60,11 +60,15 @@ validation_ratio = 0.2 # proportion of images used for validation
 ## Read data
 df = pd.read_csv(label_path)
 
+## Shuffle
+df = df.sample(frac=1).reset_index(drop=True)
+
 ## Read dataset parameters
 with open(dataset_parameter_path, 'r') as f:
     P_dataset = yaml.safe_load(f)
 # Normalization factor
 normalization = P_dataset.get('normalization', 1.)
+print(normalization)
 
 ## Extract filenames and labels
 filenames = df['filename'].values
@@ -109,21 +113,21 @@ train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=va
 
 ## Data augmentation
 
-# if P['background_subtracted']:
-#     intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
-# else:
-#     intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
-# data_augmentation = tf.keras.Sequential([
-#     #layers.Rescaling(1./255),
-#     #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-#     intensity_scaling
-#     #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
-# ])
+if P['background_subtracted']:
+    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
+else:
+    intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
+data_augmentation = tf.keras.Sequential([
+    #layers.Rescaling(1./255),
+    #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
+    intensity_scaling
+    #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
+])
 #just_rescaling = layers.Rescaling(1./255)
 
-#train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
+train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 #val_dataset = val_dataset.map(lambda x, y: (just_rescaling(x), y), num_parallel_calls=AUTOTUNE)
-#val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
+val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 
 ## Prepare
 train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
@@ -136,7 +140,7 @@ if P['load_checkpoint']:
     print('Loading previous model')
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
-elif True:
+elif False:
     model = Sequential([
         Flatten(input_shape=shape),
         Dense(64, activation='leaky_relu'),
@@ -145,16 +149,16 @@ elif True:
         BatchNormalization(),
         Dense(1)
     ])
-else:
-    # model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
-    #     Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
-    #     MaxPooling2D((2, 2)),
-    #     Conv2D(87, (5, 5), activation='leaky_relu'),
-    #     MaxPooling2D((2, 2)),
-    #     Flatten(),
-    #     Dense(161, activation='leaky_relu'),
-    #     Dense(1)
-    # ])
+elif True:
+    model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
+        Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
+        MaxPooling2D((2, 2)),
+        Conv2D(87, (5, 5), activation='leaky_relu'),
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(161, activation='leaky_relu'),
+        Dense(1)
+    ])
     # model = Sequential([
     #     Conv2D(32, (3, 3), activation='relu', input_shape=shape), # , kernel_initializer='he_normal'
     #     MaxPooling2D((2, 2)),
@@ -170,7 +174,7 @@ else:
     #     Dense(128, activation='relu', kernel_initializer='he_normal'), # ou relu, à tester; aussi kernel_initializer=he_normal ou he_uniform
     #     Dense(1)
     # ])
-
+else:
     model = Sequential([
         Conv2D(32, (3, 3), kernel_initializer='he_normal', input_shape=shape),
         BatchNormalization(),  # Doesn't seem to work
