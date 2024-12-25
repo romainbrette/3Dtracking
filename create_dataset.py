@@ -24,9 +24,9 @@ root = tk.Tk()
 root.withdraw()
 
 ### Files and folders
-movie_filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), title='Choose a movie file')
-traj_filename = filedialog.askopenfilename(initialdir=os.path.dirname(movie_filename), title='Choose a trajectory file')
-path = filedialog.askdirectory(initialdir=os.path.dirname(traj_filename), title='Choose a dataset folder')
+movie_filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a movie file')
+traj_filename = filedialog.askopenfilename(initialdir=os.path.dirname(movie_filename), message='Choose a trajectory file')
+path = filedialog.askdirectory(initialdir=os.path.dirname(traj_filename), message='Choose a dataset folder')
 
 data = magic_load_trajectories(traj_filename)
 img_path = os.path.join(path, 'images')
@@ -90,11 +90,11 @@ for image in tqdm.tqdm(movie.frames(), total=n_frames):
             z = (row['x'] - P['focus_point']) * np.tan(angle)  # mean z at the x position
 
             # Make the label file
-            row = pd.DataFrame([{'filename' : 'im{:05d}.png'.format(j), 'mean_z' : z}])
+            row = pd.DataFrame([{'filename' : 'im{:06d}.png'.format(j), 'mean_z' : z}])
             df = pd.concat([df, row], ignore_index=True)
 
             # Save image
-            imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(j)), snippets[i])
+            imageio.imwrite(os.path.join(img_path, 'im{:06d}.png'.format(j)), snippets[i])
 
         i += 1
 

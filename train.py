@@ -8,7 +8,7 @@ import pandas as pd
 import os
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, GlobalAveragePooling2D, BatchNormalization, LeakyReLU, Dropout
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, GlobalAveragePooling2D, BatchNormalization, LeakyReLU, Lambda, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
@@ -84,6 +84,9 @@ else:
 filenames = [os.path.join(img_path, name) for name in filenames]
 n = len(filenames)
 
+## Range of output values
+span = float(labels.max()-labels.max())
+
 ## Load images
 
 # Create a mapping function for loading and preprocessing images
@@ -158,7 +161,19 @@ elif False:
         Dense(161, activation='leaky_relu'),
         Dense(1)
     ])
-elif True: ## I think this one generalizes better
+elif True:
+    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
+        Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation='leaky_relu'),
+        #MaxPooling2D((2, 2)),
+        GlobalAveragePooling2D(),
+        Flatten(),
+        Dense(128, activation='leaky_relu'),
+        #Lambda(lambda x: x * span),
+        Dense(1)
+    ])
+elif False: ## I think this one generalizes better
     model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
         Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),

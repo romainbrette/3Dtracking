@@ -19,6 +19,7 @@ root.withdraw()
 
 ### Folders
 label_path = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a label file')
+results_path = os.path.splitext(label_path)[0]+'_results.png'
 
 df = pd.read_csv(label_path)
 z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
@@ -59,5 +60,7 @@ plot(bin_centers, [np.sum([bin_indices == i]) for i in range(1, num_bins + 1)], 
 xlabel('Mean z (um)')
 ylabel('Density')
 ylim(bottom=0)
+
+savefig(results_path)
 
 show()

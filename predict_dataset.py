@@ -46,19 +46,29 @@ normalization = P_dataset.get('normalization', 1.)
 # Extract filenames and labels
 filenames = df['filename'].values
 
+## Load and run model
+model = load_model(model_filename)
+
 # Define the function to load and preprocess images
 def load_and_preprocess_image(filename):
     # Load the image
     image = tf.io.read_file(filename)
     image = tf.image.decode_png(image, channels=1)
     image = tf.cast(image, tf.float32) * normalization
+    #image = np.expand_dims(image, axis=0)
     return image
 
-images = np.array([load_and_preprocess_image(os.path.join(img_path, file)) for file in tqdm.tqdm(filenames)])
+images = [load_and_preprocess_image(os.path.join(img_path, file)) for file in tqdm.tqdm(filenames)]
 
-## Load and run model
-model = load_model(model_filename)
-df['z_predict'] = model.predict(images)
+results = []
+batch_size = 128
+i = 0
+while i<len(images):
+    print(i)
+    results.extend(model.predict(np.array(images[i:i+batch_size])))
+    i += batch_size
+
+df['z_predict'] = np.array(results) #model.predict(images)
 
 print('MAE = ', np.mean(np.abs((df['z_predict'] - df['mean_z']).values)))
 

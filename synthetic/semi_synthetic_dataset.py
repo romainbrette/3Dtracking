@@ -89,9 +89,9 @@ for i in tqdm.tqdm(np.arange(P['frames'])):
 
     # Make the label file
     row = pd.DataFrame(
-        [{'filename': 'im{:05d}.png'.format(i), 'z': z, 'x' : x, 'mean_z' : mean_z, 'sigma' : sigma}])
+        [{'filename': 'im{:06d}.png'.format(i), 'z': z, 'x' : x, 'mean_z' : mean_z, 'sigma' : sigma}])
     df = pd.concat([df, row], ignore_index=True)
-    imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(i)), (blurred_image* 255).astype(np.uint8))
+    imageio.imwrite(os.path.join(img_path, 'im{:06d}.png'.format(i)), (blurred_image* 255).astype(np.uint8))
 
 ## Make a big image
 big_image = np.ones((int(P['width']/pixel_size)+image_size, int(P['width']/pixel_size)+image_size))
