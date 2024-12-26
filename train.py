@@ -26,6 +26,7 @@ from tensorflow.keras.regularizers import l2
 import sys
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
 from augmentation.augmentation import *
+from models import *
 
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -142,81 +143,8 @@ if P['load_checkpoint']:
     print('Loading previous model')
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
-elif False:
-    model = Sequential([
-        Flatten(input_shape=shape),
-        Dense(64, activation='leaky_relu'),
-        BatchNormalization(),
-        Dense(64, activation='leaky_relu'),
-        BatchNormalization(),
-        Dense(1)
-    ])
-elif False:
-    model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
-        Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
-        MaxPooling2D((2, 2)),
-        Conv2D(87, (5, 5), activation='leaky_relu'),
-        MaxPooling2D((2, 2)),
-        Flatten(),
-        Dense(161, activation='leaky_relu'),
-        Dense(1)
-    ])
-elif True:
-    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
-        Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
-        MaxPooling2D((2, 2)),
-        Conv2D(64, (3, 3), activation='leaky_relu'),
-        #MaxPooling2D((2, 2)),
-        GlobalAveragePooling2D(),
-        Flatten(),
-        Dense(128, activation='leaky_relu'),
-        #Lambda(lambda x: x * span),
-        Dense(1)
-    ])
-elif False: ## I think this one generalizes better
-    model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
-        Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
-        MaxPooling2D((2, 2)),
-        Conv2D(87, (5, 5), activation='leaky_relu'),
-        MaxPooling2D((2, 2)),
-        GlobalAveragePooling2D(),
-        Flatten(),
-        Dense(161, activation='leaky_relu'),
-        Dense(1)
-    ])
-    # model = Sequential([
-    #     Conv2D(32, (3, 3), activation='relu', input_shape=shape), # , kernel_initializer='he_normal'
-    #     MaxPooling2D((2, 2)),
-    #     Conv2D(32, (3, 3), activation='relu'),
-    #     MaxPooling2D((2, 2)),
-    #     Conv2D(32, (3, 3), activation='relu'),
-    #     MaxPooling2D((2, 2)),
-    #     Conv2D(32, (3, 3), activation='relu'),
-    #     MaxPooling2D((2, 2)),
-    #     #GlobalAveragePooling2D(),
-    #     Flatten(),
-    #     #Dropout(0.5),
-    #     Dense(128, activation='relu', kernel_initializer='he_normal'), # ou relu, à tester; aussi kernel_initializer=he_normal ou he_uniform
-    #     Dense(1)
-    # ])
 else:
-    model = Sequential([
-        Conv2D(32, (3, 3), kernel_initializer='he_normal', input_shape=shape),
-        BatchNormalization(),  # Doesn't seem to work
-        LeakyReLU(),  # Activation après BN
-        MaxPooling2D((2, 2)),
-
-        Conv2D(64, (3, 3), kernel_initializer='he_normal'),
-        BatchNormalization(),
-        LeakyReLU(),  # Activation après BN
-        MaxPooling2D((2, 2)),
-
-        #GlobalAveragePooling2D(),
-        Flatten(),
-        #Dropout(0.5),
-        Dense(128, activation='relu', kernel_initializer='he_normal'),
-        Dense(1)
-    ])
+    model = simple_conv(shape)
 
 model.summary()
 with open(model_filename, "w") as f:
