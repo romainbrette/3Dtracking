@@ -11,6 +11,7 @@ import numpy as np
 from tensorflow.keras.models import load_model
 import tqdm
 import yaml
+import math
 
 root = tk.Tk()
 root.withdraw()
@@ -62,13 +63,11 @@ images = [load_and_preprocess_image(os.path.join(img_path, file)) for file in tq
 
 results = []
 batch_size = 128
-i = 0
-while i<len(images):
-    print(i)
-    results.extend(model.predict(np.array(images[i:i+batch_size])))
-    i += batch_size
+n_batch = math.ceil(len(images)/batch_size)
+for i in tqdm.tqdm(range(n_batch), total=n_batch):
+    results.extend(model.predict(np.array(images[i*batch_size:(i+1)*batch_size])))
 
-df['z_predict'] = np.array(results) #model.predict(images)
+df['z_predict'] = np.array(results)
 
 print('MAE = ', np.mean(np.abs((df['z_predict'] - df['mean_z']).values)))
 

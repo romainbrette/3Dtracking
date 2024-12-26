@@ -15,6 +15,8 @@ import seaborn as sns
 matplotlib.use('TkAgg')
 from pylab import *
 
+pixel_size = 1#.78
+
 root = tk.Tk()
 root.withdraw()
 
@@ -23,6 +25,7 @@ label_path = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloa
 
 df = pd.read_csv(label_path)
 df = df.sort_values(by='mean_z')
+df['z_predict'] = df['z_predict']*pixel_size
 
 z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
 print("Mean absolute error:", np.mean(np.abs(z_predict-mean_z)))

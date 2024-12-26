@@ -26,27 +26,25 @@ root.withdraw()
 movie_filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a movie file')
 traj_filename = filedialog.askopenfilename(initialdir=os.path.dirname(movie_filename), message='Choose a trajectory file')
 name, ext = os.path.splitext(traj_filename)
-output_trajectories = name+'_with_z'+ext
+output_trajectories = name+'_with_z.csv'
 
 ## Model
 model_filename = filedialog.askdirectory(initialdir=os.path.dirname(movie_filename), message='Choose a model')
 
+### Load the trained model
+model = load_model(model_filename)
+image_size = model.input_shape[1]
+half_img_size = image_size//2
+
 ### Load trajectories
 data = magic_load_trajectories(traj_filename)
-data['z_predict'] = np.nan
+data['z'] = np.nan
 
 ### Parameters
 parameters = [('pixel_size', 'Pixel size (um)', 5.)]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
 pixel_size = P['pixel_size']
-
-### Load the trained model
-#options = tf.saved_model.LoadOptions(experimental_io_device='/job:localhost')
-#model = load_model(model_filename, options=options)
-model = load_model(model_filename)
-image_size = model.input_shape[0]
-half_img_size = int(image_size/2)
 
 ### Open movie
 image_path = os.path.dirname(movie_filename)
@@ -61,10 +59,11 @@ n_frames = data['frame'].nunique()
 previous_position = 0
 for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
-    snippets = extract_cells(image, data_frame, image_size, crop=True)
-    normalization = 1./np.mean([np.mean(snippet) for snippet in snippets])
-    predictions = model.predict([snippet*normalization for snippet in snippets])
-    data.loc[data['frame'] == previous_position, 'z'] = predictions
+    if len(data_frame)>0:
+        snippets = extract_cells(image, data_frame, image_size, crop=True)
+        normalization = 1./np.mean([np.mean(snippet) for snippet in snippets])
+        predictions = model.predict(np.array([snippet*normalization for snippet in snippets]))
+        data.loc[data['frame'] == previous_position, 'z'] = predictions
     previous_position = movie.position
 
 print(data.head())

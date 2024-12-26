@@ -14,6 +14,8 @@ import matplotlib
 matplotlib.use('TkAgg')
 from pylab import *
 
+#pixel_size = 1.78
+
 root = tk.Tk()
 root.withdraw()
 
@@ -22,6 +24,7 @@ label_path = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloa
 results_path = os.path.splitext(label_path)[0]+'_results.png'
 
 df = pd.read_csv(label_path)
+#df['z_predict'] = df['z_predict']/pixel_size
 z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
 
 print("Error vs. mean_z:", ((z_predict-mean_z)**2).mean()**.5)
