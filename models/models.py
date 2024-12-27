@@ -7,7 +7,39 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Global
 from tensorflow.keras import layers
 from tensorflow.keras.applications import EfficientNetB0
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Input
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D, Dense, Concatenate
+
+def newby(shape, activation='softplus'):
+    '''
+    Inspired from Newby et al. (PNAS, 2018).
+    '''
+    # Input layer
+    inputs = Input(shape=shape)
+
+    # Parallel convolutional paths
+    conv1 = Conv2D(3, (3, 3), activation=activation, padding='same')(inputs)
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    conv2 = Conv2D(3, (5, 5), activation=activation, padding='same', strides=2)(inputs)
+    conv3 = Conv2D(3, (9, 9), activation=activation, padding='same', strides=2)(inputs)
+    concat1 = Concatenate()([pool1, conv2, conv3])
+
+    # Second layer: two parallel convolutional layers
+    conv2_1 = Conv2D(6, (7, 7), activation=activation, padding='same', dilation_rate=2)(concat1)
+    conv2_2 = Conv2D(6, (3, 3), activation=activation, padding='same', dilation_rate=2)(concat1)
+    concat2 = Concatenate()([conv2_1, conv2_2])
+
+    # Third layer: single convolutional layer
+    conv3 = Conv2D(2, (5, 5), activation=activation, padding='same')(concat2)
+
+    # Final regression layers
+    # Global average pooling
+    gap = GlobalAveragePooling2D()(conv3)
+    dense = Dense(128, activation=activation)(gap)
+    output = Dense(1, activation='linear')(dense)
+
+    # Create the model
+    model = Model(inputs=inputs, outputs=output)
+    return model
 
 def efficient_net(shape):
     '''
@@ -82,3 +114,7 @@ def batch_conv(shape):
         Dense(1)
     ])
     return model
+
+if __name__ == '__main__':
+    model = efficient_net((96, 96, 1))
+    model.summary()
