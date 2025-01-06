@@ -3,6 +3,7 @@ Train a network to estimate z from Paramecium image.
 
 TODO:
 - Metrics: on both z and z_mean
+- Automatic suffix from model
 '''
 import pandas as pd
 import os
@@ -144,7 +145,7 @@ if P['load_checkpoint']:
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
 else:
-    model = newby(shape) #simple_conv(shape)
+    model = efficient_net(shape) #simple_conv(shape)
 
 model.summary()
 with open(model_filename, "w") as f:
@@ -153,7 +154,7 @@ with open(model_filename, "w") as f:
     sys.stdout = sys.__stdout__  # Reset to default
 
 ## Compile the model
-model.compile(optimizer='adam', # default learning_rate .001
+model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0001), #'adam', # default learning_rate .001
               loss='mean_squared_error', metrics=['mae'])
 #model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0005), # default learning_rate .001
 #              loss='mean_squared_error', metrics=['mae'])
