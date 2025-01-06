@@ -41,10 +41,10 @@ data = magic_load_trajectories(traj_filename)
 data['z'] = np.nan
 
 ### Parameters
-parameters = [('pixel_size', 'Pixel size (um)', 5.)]
-param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
-P = param_dialog.value
-pixel_size = P['pixel_size']
+# parameters = [('pixel_size', 'Pixel size (um)', 5.)]
+# param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
+# P = param_dialog.value
+# pixel_size = P['pixel_size']
 
 ### Open movie
 image_path = os.path.dirname(movie_filename)
