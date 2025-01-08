@@ -15,7 +15,7 @@ import seaborn as sns
 matplotlib.use('TkAgg')
 from pylab import *
 
-pixel_size = 1#.78
+pixel_size = 1.78
 
 root = tk.Tk()
 root.withdraw()
@@ -50,6 +50,8 @@ suptitle('Mean prediction')
 subplot(211)
 mean_estimate = df.groupby('mean_z')['z_predict'].mean()
 mean_estimate.plot(kind='line', marker='o')
+m, M = df['mean_z'].min(), df['mean_z'].max()
+plot([m,M], [m,M], 'k--')
 xlabel('Mean z (um)')
 ylabel('Estimated z (um)')
 subplot(212)

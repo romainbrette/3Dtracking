@@ -1,7 +1,5 @@
 '''
 Evaluate a trained model on a dataset.
-
-IN PROGRESS
 '''
 import os
 from tkinter import filedialog
@@ -54,8 +52,10 @@ subplot(413)
 plot(bin_centers, [np.std(z_predict[bin_indices == i]) for i in range(1, num_bins + 1)], "r", label='s.d.')
 #plot(bin_centers, [np.mean(np.abs(z_predict[bin_indices == i]-mean_z[bin_indices == i])) for i in range(1, num_bins + 1)], "k", label='error')
 plot(bin_centers, [np.mean((z_predict[bin_indices == i]-mean_z[bin_indices == i])**2)**.5 for i in range(1, num_bins + 1)], "k", label='error')
+plot(bin_centers, [np.mean((z_predict[bin_indices == i]-mean_z[bin_indices == i])) for i in range(1, num_bins + 1)], "b", label='bias')
+plot(bin_centers, 0*bin_centers, "--b")
 ylabel('Error (um)')
-ylim(bottom=0)
+#ylim(bottom=0)
 legend()
 
 subplot(414)

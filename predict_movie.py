@@ -61,8 +61,9 @@ for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
     if len(data_frame)>0:
         snippets = extract_cells(image, data_frame, image_size, crop=True)
-        normalization = 1./np.mean([np.mean(snippet) for snippet in snippets])
-        predictions = model.predict(np.array([snippet*normalization for snippet in snippets]))
+        predictions = model.predict(np.array([snippet/(np.mean(snippet)+1e-8) for snippet in snippets]))
+        #normalization = 1./np.mean([np.mean(snippet) for snippet in snippets])
+        #predictions = model.predict(np.array([snippet*normalization for snippet in snippets]))
         data.loc[data['frame'] == previous_position, 'z'] = predictions
     previous_position = movie.position
 

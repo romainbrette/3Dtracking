@@ -45,6 +45,8 @@ parameters = [('epochs', 'Epochs', 500),
               ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
               ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
+              ('min_threshold', 'Minimum threshold', 0),
+              ('max_threshold', 'Maximum threshold', 0),
               ('min_scaling', 'Minimum intensity scaling', 1.),
               ('max_scaling', 'Maximum intensity scaling', 1.)
               ]
@@ -70,6 +72,8 @@ with open(dataset_parameter_path, 'r') as f:
     P_dataset = yaml.safe_load(f)
 # Normalization factor
 normalization = P_dataset.get('normalization', 1.)
+min_threshold = P['min_threshold']*normalization
+max_threshold = P['max_threshold']*normalization
 
 ## Extract filenames and labels
 filenames = df['filename'].values
@@ -97,7 +101,10 @@ def load_image(filename, label):
     img = tf.io.read_file(filename)
     img = tf.image.decode_png(img, channels=1)
     img = tf.cast(img, dtype=tf.float32)
-    img = img*normalization # normalize so as to have mean image = 1.0
+    mean_intensity = tf.reduce_mean(img)
+    mean_intensity = tf.maximum(mean_intensity, 1e-8)
+    img = img/mean_intensity
+    #img = img*normalization # normalize so as to have mean image = 1.0
     #img = img / 255.0  # Normalize pixel values to [0, 1]
     #img = tf.image.grayscale_to_rgb(img)
     return img, label
@@ -121,12 +128,19 @@ if P['background_subtracted']:
     intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
 else:
     intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
-data_augmentation = tf.keras.Sequential([
-    #layers.Rescaling(1./255),
-    #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-    intensity_scaling
-    #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
-])
+if P['max_threshold']>0:
+    data_augmentation = tf.keras.Sequential([
+        #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
+        RandomThreshold(min_threshold, max_threshold),
+        intensity_scaling
+        #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
+    ])
+else:
+    data_augmentation = tf.keras.Sequential([
+        # layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
+        intensity_scaling
+        # layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
+    ])
 #just_rescaling = layers.Rescaling(1./255)
 
 train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)

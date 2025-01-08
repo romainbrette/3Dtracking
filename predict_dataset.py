@@ -55,7 +55,12 @@ def load_and_preprocess_image(filename):
     # Load the image
     image = tf.io.read_file(filename)
     image = tf.image.decode_png(image, channels=1)
-    image = tf.cast(image, tf.float32) * normalization
+    #image = tf.cast(image, tf.float32) * normalization
+    image = tf.cast(image, tf.float32)
+    mean_intensity = tf.reduce_mean(image)
+    mean_intensity = tf.maximum(mean_intensity, 1e-8)
+    image = image/mean_intensity
+
     #image = np.expand_dims(image, axis=0)
     return image
 
