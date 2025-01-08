@@ -15,6 +15,7 @@ from gui.gui import *
 import yaml
 import tkinter as tk
 from tracking.load_tracking import *
+from tracking.trajectory_analysis import *
 import imageio
 import tqdm
 from movie.movie import *
@@ -40,7 +41,8 @@ parameters = [('angle', 'Angle (°)', 19.2), # signed
               ('focus_point', 'Focus point (%)', 100), # x position where in focus
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200),
-              ('nimages', 'Number of images', 0)
+              ('nimages', 'Number of images', 0),
+              ('min_distance', 'Minimum trajectory size (um)', 300.)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -50,6 +52,7 @@ angle = P['angle']*np.pi/180.
 P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
 image_size = P['image_size']
 half_img_size = int(image_size/2)
+min_distance = P['min_distance'] # trajectories must span sufficient distance to be included
 
 ### Calculate the interval between frames
 total_frames = data['frame'].nunique()
@@ -74,6 +77,16 @@ df = pd.DataFrame(columns=['filename', 'mean_z'])
 # could be vectorized:
 #mean_z = (df['x'] - P['focus_point']) * np.tan(P['angle'])  # mean z at the x position
 #mean_z = mean_z.iloc[::frame_increment]
+
+### Exclude cells close to the border
+df = df[(df['x']>half_img_size) & (df['y']>half_img_size) & \
+        (df['x']+half_img_size<width) & (df['y']+half_img_size<height)]
+
+### Exclude stationary trajectories
+traj = trajectories_from_table(df)
+selected_segments = [segment for segment in traj if \
+                     ((traj['x'].max()-traj['x'].min())**2 + (traj['y'].max()-traj['y'].min())**2)>(min_distance/pixel_size)**2]
+
 
 j = 0
 intensities = []
