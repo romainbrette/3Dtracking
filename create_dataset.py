@@ -1,11 +1,12 @@
 '''
 Makes a dataset from a movie or tiff folder.
-Assumes the trajectories are in pixel.
+** Assumes the trajectories are in pixel. **
 
 TODO:
 - remove cells with close neighbors
 - load movies (not just tiffs)
 - automatic focus determination
+- deal with trajectories in um
 '''
 import numpy as np
 import os
@@ -79,14 +80,14 @@ df = pd.DataFrame(columns=['filename', 'mean_z'])
 #mean_z = mean_z.iloc[::frame_increment]
 
 ### Exclude cells close to the border
-df = df[(df['x']>half_img_size) & (df['y']>half_img_size) & \
-        (df['x']+half_img_size<width) & (df['y']+half_img_size<height)]
+data = data[(data['x']>half_img_size) & (data['y']>half_img_size) & \
+        (data['x']+half_img_size<width) & (data['y']+half_img_size<height)]
 
 ### Exclude stationary trajectories
-traj = trajectories_from_table(df)
+traj = trajectories_from_table(data)
 selected_segments = [segment for segment in traj if \
-                     ((traj['x'].max()-traj['x'].min())**2 + (traj['y'].max()-traj['y'].min())**2)>(min_distance/pixel_size)**2]
-
+                     ((segment['x'].max()-segment['x'].min())**2 + (segment['y'].max()-segment['y'].min())**2)>(min_distance/pixel_size)**2]
+data = pd.concat(selected_segments)
 
 j = 0
 intensities = []
