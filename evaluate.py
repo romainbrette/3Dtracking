@@ -22,7 +22,7 @@ label_path = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloa
 results_path = os.path.splitext(label_path)[0]+'_results.png'
 
 df = pd.read_csv(label_path)
-#df['z_predict'] = df['z_predict']/pixel_size
+#df['z_predict'] = df['z_predict']/1.78 #pixel_size
 z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
 
 print("Error vs. mean_z:", ((z_predict-mean_z)**2).mean()**.5)

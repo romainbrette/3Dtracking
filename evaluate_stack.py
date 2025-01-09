@@ -1,7 +1,7 @@
 '''
 Evaluate a trained model on a stacked dataset.
 
-IN PROGRESS
+Instead of dealing with pixel size, I just create the dataset with pixel labels rather than um
 '''
 import os
 from tkinter import filedialog
