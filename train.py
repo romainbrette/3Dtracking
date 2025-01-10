@@ -1,17 +1,12 @@
 '''
-Train a network to estimate z from Paramecium image.
+Trains a network to estimate z from Paramecium image.
 
 TODO:
 - Metrics: on both z and z_mean
-- Automatic suffix from model
 '''
-import pandas as pd
 import os
-import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, GlobalAveragePooling2D, BatchNormalization, LeakyReLU, Lambda, Dropout
 from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('TkAgg')
@@ -22,10 +17,8 @@ import yaml
 import pandas as pd
 from time import time
 import numpy as np
-from scipy import stats
-from tensorflow.keras.regularizers import l2
 import sys
-from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping
+from tensorflow.keras.callbacks import ReduceLROnPlateau
 from augmentation.augmentation import *
 from models import *
 
@@ -41,6 +34,7 @@ label_path = os.path.join(path, 'labels.csv')
 
 ### Parameters
 parameters = [('epochs', 'Epochs', 500),
+              ('model', 'Model', list(models.keys())),
               ('load_checkpoint', 'Load checkpoint', False),
               ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
@@ -53,10 +47,15 @@ parameters = [('epochs', 'Epochs', 500),
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
 save_checkpoint = True
-checkpoint_filename = os.path.join(path,'best_z_'+P['filename_suffix']+'.tf')
-parameter_path = os.path.join(path, 'training_'+P['filename_suffix']+'.yaml')
-history_path = os.path.join(path, 'history_'+P['filename_suffix']+'.csv')
-model_filename = os.path.join(path, 'model_'+P['filename_suffix']+'.txt')
+# Suffix
+model_name = P['model']
+suffix = model_name
+if len(P['filename_suffix'])>0:
+    suffix += '_'+P['filename_suffix']
+checkpoint_filename = os.path.join(path,'best_z_'+suffix+'.tf')
+parameter_path = os.path.join(path, 'training_'+suffix+'.yaml')
+history_path = os.path.join(path, 'history_'+suffix+'.csv')
+model_filename = os.path.join(path, 'model_'+suffix+'.txt')
 dataset_parameter_path = os.path.join(path, 'labels.yaml')
 batch_size = 128
 validation_ratio = 0.2 # proportion of images used for validation
@@ -159,8 +158,7 @@ if P['load_checkpoint']:
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
 else:
-    model = conv(shape) #simple_conv(shape)
-    #model = newby(shape, activation='relu')
+    model = models[model_name](shape)
 
 model.summary()
 with open(model_filename, "w") as f:
@@ -211,7 +209,7 @@ loss, mae = model.evaluate(val_dataset)
 print(f'Validation loss: {loss}, Validation MAE: {mae}')
 P['loss'] = loss
 P['mae'] = mae
-model.save(os.path.join(path,'z_'+P['filename_suffix']+'.tf'))
+model.save(os.path.join(path,'z_'+suffix+'.tf'))
 
 ## Save training history
 df = pd.DataFrame(history.history)

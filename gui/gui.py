@@ -1,5 +1,6 @@
 from tkinter import simpledialog
 import tkinter as tk
+from tkinter import ttk
 
 __all__ = ['ParametersDialog']
 
@@ -17,6 +18,7 @@ class ParametersDialog(simpledialog.Dialog):
         self.parameters = parameters
         self.value = {}
         self.checks = {}
+        self.menu = {}
         self.type = {x: type(z) for x, _, z in parameters}
         super().__init__(parent, title)  # Call the parent class initializer
 
@@ -32,6 +34,8 @@ class ParametersDialog(simpledialog.Dialog):
                 self.entry[name] = tk.Checkbutton(master, variable=self.checks[name])
                 if default:
                     self.entry[name].select()
+            elif (type(default) == type([])) | (type(default) == type(())): # list of choices
+                self.entry[name] = ttk.Combobox(master, values=default)
             else:
                 self.entry[name] = tk.Entry(master)
                 # Set default values
@@ -47,5 +51,7 @@ class ParametersDialog(simpledialog.Dialog):
         for name, text, default in self.parameters:
             if self.type[name] == type(True):
                 self.value[name] = self.checks[name].get()
+            elif (type(default) == type([])) | (type(default) == type(())): # list of choices
+                self.value[name] = self.entry[name].get()
             else:
                 self.value[name] = self.type[name](self.entry[name].get())

@@ -174,6 +174,14 @@ def extract_single_model(model):
     # Create the new submodel for the first channel
     return Model(inputs=first_image, outputs=first_channel_output)
 
+models = {'newby': newby,
+            'efficient_net': efficient_net,
+            "dense_model": dense_model,
+            'conv': conv,
+            'convmax': convmax,
+            'batch_conv': batch_conv,
+            'simple_conv': simple_conv}
+
 if __name__ == '__main__':
     shared_model = efficient_net((96, 96, 1))
     model = two_point_model(shared_model)
