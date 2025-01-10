@@ -13,8 +13,8 @@ Dimensions must be in pixel.
 
 ## Typical workflow
 1. Make a training data set. This can be done with:
-  - `create_dataset.py` for a movie on a tilted slide;
-  - `create_stack_dataset.py` for movies on horizontal slides at several known z positions;
+  - `dataset/create_dataset.py` for a movie on a tilted slide;
+  - `dataset/create_stack_dataset.py` for movies on horizontal slides at several known z positions;
   - `synthetic/synthetic_dataset.py` for an artificial dataset with blurred ellipses.
   - `synthetic/semi_synthetic_dataset.py` for a semi-artificial dataset made of blurred cell images.
 
@@ -23,17 +23,19 @@ Dimensions must be in pixel.
 
 3. Make predictions on a movie (`predict_movie.py`) or on a dataset (`predict_dataset.py`).
 
-4. Evaluate predictions on a dataset with `evaluate.py` (tilted dataset),
-`evaluate_stack` (stack dataset) or `evaluate_synthetic` (synthetic dataset).
+4. Evaluate predictions on a dataset with `evaluation/evaluate_tilted_slide.py` (tilted dataset),
+`evaluation/evaluate_stack` (stack dataset) or `evaluate_synthetic` (synthetic dataset).
 
 ## File structure
 
-- `create_dataset.py` creates a labeled dataset of cell images from a tiff folder (movie) and a trajectory file.
-The movie is taken
-on a tilted slide, so that the z position of the slide surface is taken as the label.
 - `train.py` trains the model on a labeled dataset.
-- `predict_movie.py` applies the trained model on a tiff folder (movie) with trajectory file, and adds a column
-`z_predict` to the trajectory file.
+- `predict_dataset.py` applies the trained model on a dataset and adds a column `z_predict`.
+- `predict_movie.py` applies the trained model on a tiff folder (movie) with trajectory file,
+   and adds a column `z` to the trajectory file.
+
+### `dataset/`
+Scripts to create labeled datasets of cell images from a tiff folder (movie)
+and a trajectory file.
 
 ### `synthetic/`
 Various scripts to create and analyze synthetic data.

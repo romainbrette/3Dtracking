@@ -159,7 +159,7 @@ if P['load_checkpoint']:
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
 else:
-    model = efficient_net(shape) #simple_conv(shape)
+    model = conv(shape) #simple_conv(shape)
     #model = newby(shape, activation='relu')
 
 model.summary()

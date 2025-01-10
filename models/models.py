@@ -115,6 +115,67 @@ def batch_conv(shape):
     ])
     return model
 
+def conv(shape):
+    model = Sequential([
+        Conv2D(32, (3, 3), input_shape=shape),
+        LeakyReLU(),  # Activation après BN
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3)),
+        LeakyReLU(),  # Activation après BN
+        MaxPooling2D((2, 2)),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dense(1)
+    ])
+    return model
+
+def two_point_model(shared_model):
+    '''
+    A model applied on two consecutive images
+    '''
+    _, n, m, _ = shared_model.input_shape
+
+    # Define the input
+    input_shape = (n, m, 2)
+    inputs = tf.keras.Input(shape=input_shape)
+
+    # Split the input into two channels
+    channel_1 = layers.Lambda(lambda x: x[..., 0:1], name='first_image')(inputs)
+    channel_2 = layers.Lambda(lambda x: x[..., 1:2], name='second_image')(inputs)
+
+    # Apply the shared Sequential model to both channels
+    output_1 = shared_model(channel_1)
+    output_2 = shared_model(channel_2)
+
+    # Combine the outputs
+    outputs = layers.Concatenate()([output_1, output_2])
+
+    # Create the final model
+    return Model(inputs, outputs)
+
+def extract_single_model(model):
+    '''
+    Extracts the shared model underlying a duplicate model.
+    '''
+    first_channel_input = model.input  # This is the original input layer
+    first_image = model.get_layer('first_image')(first_channel_input)  # Extract the first channel
+
+    # Recreate the submodel that only processes the first channel
+    # Reuse the shared model without retraining
+    # For this, you'll reference the layers from the original model
+    # Here, we're assuming that 'model' is the shared submodel for each channel.
+
+    # Using the same shared model for processing the first channel
+    shared_model = model.get_layer('model')  # This is the shared submodel
+
+    # Apply the shared model to the first channel
+    first_channel_output = shared_model(first_image)
+
+    # Create the new submodel for the first channel
+    return Model(inputs=first_image, outputs=first_channel_output)
+
 if __name__ == '__main__':
-    model = efficient_net((96, 96, 1))
+    shared_model = efficient_net((96, 96, 1))
+    model = two_point_model(shared_model)
     model.summary()
+    extract_single_model(model).summary()

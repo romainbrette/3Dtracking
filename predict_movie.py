@@ -1,7 +1,5 @@
 '''
 Predict z on a movie (tiff folder).
-
-IN PROGRESS
 '''
 import numpy as np
 import os
