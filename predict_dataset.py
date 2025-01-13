@@ -48,7 +48,7 @@ normalization = P_dataset.get('normalization', 1.)
 filenames = df['filename'].values
 
 ## Load and run model
-model = load_model(model_filename)
+model = load_model(model_filename, custom_objects={'modified_mae' : None, 'mean_abs_difference_metric':None, 'combined_loss':None})
 
 # Define the function to load and preprocess images
 def load_and_preprocess_image(filename):

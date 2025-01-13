@@ -64,7 +64,7 @@ validation_ratio = 0.2 # proportion of images used for validation
 df = pd.read_csv(label_path)
 
 ## Shuffle
-df = df.sample(frac=1).reset_index(drop=True)
+#df = df.sample(frac=1).reset_index(drop=True)
 
 ## Read dataset parameters
 with open(dataset_parameter_path, 'r') as f:

@@ -1,6 +1,7 @@
 '''
 Makes a dataset from a movie or tiff folder.
-The dataset is made of consecutive image pairs or triplets.
+The label file is ordered by trajectories, and a binary number marks the endpoint of a trajectory with 0 (vs. 1).
+
 ** Assumes the trajectories are in pixel. **
 
 TODO:

@@ -1,6 +1,9 @@
 '''
 Trains a network to estimate z from Paramecium image.
-Uses an additional loss of continuity of z (square of temporal derivative).
+Uses an additional loss of continuity of z (error in dz).
+
+Not sure this is good given that the "true" z is in fact x, not z. Otherwise, normalize with variance.
+And/or, have it on freely swimming cells (not straightforward to combine the two losses).
 '''
 import os
 from tensorflow.keras.models import Sequential
@@ -150,20 +153,6 @@ val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parall
 train_dataset = train_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 val_dataset = val_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
-## Load weights and model from the checkpoint
-if P['load_checkpoint']:
-    print('Loading previous model')
-    #model.load_weights(checkpoint_filename)
-    model = tf.keras.models.load_model(checkpoint_filename)
-else:
-    model = models[model_name](shape)
-
-model.summary()
-with open(model_filename, "w") as f:
-    sys.stdout = f  # Redirect output to the file
-    model.summary()
-    sys.stdout = sys.__stdout__  # Reset to default
-
 def combined_loss(y_true, y_pred):
     """
     Custom loss that combines:
@@ -215,6 +204,22 @@ def modified_mae(y_true, y_pred):
     # Compute the mean
     return tf.reduce_mean(tf.abs(y_true - y_pred))
 
+## Load weights and model from the checkpoint
+if P['load_checkpoint']:
+    print('Loading previous model')
+    #model.load_weights(checkpoint_filename)
+    model = tf.keras.models.load_model(checkpoint_filename, custom_objects={'modified_mae': modified_mae,
+                                                                            'mean_abs_difference_metric': mean_abs_difference_metric,
+                                                                            'combined_loss': combined_loss})
+else:
+    model = models[model_name](shape)
+
+model.summary()
+with open(model_filename, "w") as f:
+    sys.stdout = f  # Redirect output to the file
+    model.summary()
+    sys.stdout = sys.__stdout__  # Reset to default
+
 ## Compile the model
 model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0001), #'adam', # default learning_rate .001
               loss=combined_loss, metrics=[modified_mae, mean_abs_difference_metric])
@@ -252,10 +257,10 @@ t2 = time()
 P['time'] = t2-t1
 
 ## Evaluate
-loss, mae, continuity_metric = model.evaluate(val_dataset)
-print(f'Validation loss: {loss}, Validation MAE: {mae}')
+loss, modified_mae, continuity_metric = model.evaluate(val_dataset)
+print(f'Validation loss: {loss}, Validation MAE: {modified_mae}')
 P['loss'] = loss
-P['mae'] = mae
+P['modified_mae'] = modified_mae
 model.save(os.path.join(path,'z_'+suffix+'.tf'))
 
 ## Save training history
@@ -266,8 +271,8 @@ else:
     df.to_csv(history_path)
 
 ## Plot
-plt.plot(history.history['mae'])
-plt.plot(history.history['val_mae'])
+plt.plot(history.history['modified_mae'])
+plt.plot(history.history['val_modified_mae'])
 plt.title('Model MAE')
 plt.ylabel('mae')
 plt.xlabel('Epoch')

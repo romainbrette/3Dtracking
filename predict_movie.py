@@ -30,7 +30,7 @@ output_trajectories = name+'_with_z.csv'
 model_filename = filedialog.askdirectory(initialdir=os.path.dirname(movie_filename), message='Choose a model')
 
 ### Load the trained model
-model = load_model(model_filename)
+model = load_model(model_filename, custom_objects={'modified_mae' : None, 'mean_abs_difference_metric':None, 'combined_loss':None})
 image_size = model.input_shape[1]
 half_img_size = image_size//2
 
