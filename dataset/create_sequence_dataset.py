@@ -117,21 +117,19 @@ for image in tqdm.tqdm(movie.frames(), total=n_frames):
     previous_position = movie.position
 
 ### Make the label table
-filenames1 = []
-filenames2 = []
-z1, z2 = [], []
+filenames = []
+z = []
+mask = []
 for segment in selected_segments:
     rows_indexes = segment.index.values
-    for i in range(len(rows_indexes)-1):
-        row1, row2 = rows_indexes[i:i+2]
-        filenames1.append(rows[row1]['filename'])
-        filenames2.append(rows[row2]['filename'])
-        z1.append(rows[row1]['mean_z'])
-        z2.append(rows[row2]['mean_z'])
-df = pd.DataFrame({'filename1': filenames1,
-                   'filename2': filenames2,
-                   'mean_z1': z1,
-                   'mean_z2': z2})
+    for i in range(len(rows_indexes)):
+        row = rows_indexes[i]
+        filenames.append(rows[row]['filename'])
+        z.append(rows[row]['mean_z'])
+    mask.extend([1]*(len(rows_indexes)-1)+[0])
+df = pd.DataFrame({'filename': filenames,
+                   'mean_z': z,
+                   'mask': mask})
 
 ## Save labels
 df.to_csv(label_path, index=False)
