@@ -67,6 +67,20 @@ for segment in selected_segments[-10:]:
 
 data = pd.concat(selected_segments)
 
+# calculate actual 3D speed
+for segment in selected_segments:
+    vx, vy = np.diff(segment['x']), np.diff(segment['y'])
+    vz = np.diff(segment['z'])
+    segment['vx'] = np.hstack([vx, nan])
+    segment['vy'] = np.hstack([vy, nan])
+    segment['vz'] = np.hstack([vz, nan])
+    speed = (vx ** 2 + vy ** 2) ** .5
+    speed_3D = (vx ** 2 + vy ** 2 + vz**2) ** .5
+    segment['speed'] = np.hstack([speed, nan])
+    segment['speed_3D'] = np.hstack([speed_3D, nan])
+
+data = pd.concat(selected_segments)
+
 figure()
 hist(data['z'], 50)
 
