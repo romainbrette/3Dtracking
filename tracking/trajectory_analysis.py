@@ -63,9 +63,9 @@ def calculate_speed(segment):
 
     return segment
 
-def bounded_variation(table):
+def abs_variation(table):
     '''
-    Calculate mean bounded variation of z.
+    Calculate mean absolute variation of z.
     '''
     vz = table['vz'].values
     vz = vz[~np.isnan(vz)]

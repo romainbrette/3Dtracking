@@ -14,6 +14,8 @@ import matplotlib
 import seaborn as sns
 matplotlib.use('TkAgg')
 from pylab import *
+import yaml
+from scipy.stats import pearsonr
 
 pixel_size = 1.78
 
@@ -22,13 +24,21 @@ root.withdraw()
 
 ### Folders
 label_path = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a label file')
+info_path = os.path.splitext(label_path)[0]+'_results.yaml'
+info = {}
 
 df = pd.read_csv(label_path)
 df = df.sort_values(by='mean_z')
 df['z_predict'] = df['z_predict']*pixel_size
 
 z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
-print("Mean absolute error:", np.mean(np.abs(z_predict-mean_z)))
+MAE = np.mean(np.abs(z_predict-mean_z))
+print("Mean absolute error:", MAE)
+info['MAE'] = MAE
+
+## Linear correlation
+correlation, _ = pearsonr(z_predict, mean_z)
+info['r'] = correlation
 
 fig, (ax1, ax2) = subplots(2, 1, sharex=True)
 sns.histplot(df['z_predict'], kde=True, ax=ax1)
@@ -60,5 +70,8 @@ std_estimate.plot(kind='line', marker='o')
 xlabel('Mean z (um)')
 ylabel('Precision (um)')
 tight_layout()
+
+with open(info_path, 'w') as f:
+    yaml.dump(info, f)
 
 show()

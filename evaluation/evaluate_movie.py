@@ -9,21 +9,26 @@ from gui.gui import *
 import tkinter as tk
 from tracking.load_tracking import *
 from tracking.trajectory_analysis import *
+import yaml
 
 root = tk.Tk()
 root.withdraw()
 
 ### Files and folders
 traj_filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a trajectory file')
+name, ext = os.path.splitext(traj_filename)
+output_file = os.path.join(name, '_eval.yaml')
 
 ### Load trajectories
 data = magic_load_trajectories(traj_filename)
 
-### Calculate bounded variation of vertical speed
+### Calculate absolute variation of vertical speed
 segments = segments_from_table(data)
 print(len(segments), 'segments')
 processed_table = pd.concat([calculate_speed(segment) for segment in segments])
 print(len(processed_table), 'points')
-BV = bounded_variation(processed_table)
+BV = abs_variation(processed_table)
 
-print("Bounded variation of z (pix):", BV)
+print("Mean absolute variation of z (pix):", BV)
+with open(output_file, 'w') as f:
+    yaml.dump({'abs_variation': float(BV)}, f)

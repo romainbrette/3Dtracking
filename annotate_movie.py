@@ -30,8 +30,8 @@ data = magic_load_trajectories(traj_filename)
 parameters = [('pixel_size', 'Pixel size (um)', 1.78),
               ('in_pixel', 'Trajectory in pixel', True),
               ('fps', 'FPS (Hz)', 20.),
-              ('text_shift', 'Text shift (um)', 100),
-              ('font_size', 'Font size (um)', 15),
+              ('text_shift', 'Text shift (um)', 200),
+              ('font_size', 'Font size (pixel)', 30),
               ('truncate', 'Truncation (s)', 1e6)]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -43,7 +43,7 @@ else:
     z_factor = 1.33
 fps = P['fps']
 text_shift = int(P['text_shift']/P['pixel_size'])
-font_size= int(P['font_size']/P['pixel_size'])
+font_size= int(P['font_size'])
 print(movie_out, fps)
 
 data = data[data['frame']*1/fps<P['truncate']]

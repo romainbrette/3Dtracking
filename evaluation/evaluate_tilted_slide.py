@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('TkAgg')
 from pylab import *
+import yaml
+from sklearn.feature_selection import mutual_info_regression
+from scipy.stats import pearsonr
 
 #pixel_size = 1.78
 
@@ -20,12 +23,30 @@ root.withdraw()
 ### Folders
 label_path = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a label file')
 results_path = os.path.splitext(label_path)[0]+'_results.png'
+info_path = os.path.splitext(label_path)[0]+'_results.yaml'
+info = {}
 
 df = pd.read_csv(label_path)
 #df['z_predict'] = df['z_predict']/1.78 #pixel_size
 z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
 
-print("Error vs. mean_z:", ((z_predict-mean_z)**2).mean()**.5)
+## Error
+RMSE = ((z_predict-mean_z)**2).mean()**.5
+print("Error vs. mean_z:", RMSE)
+info["RMSE"] = RMSE
+
+MAE = np.mean(np.abs(z_predict-mean_z))
+print("Mean absolute error:", MAE)
+info['MAE'] = MAE
+
+## Calculate mutual information
+MI = mutual_info_regression(z_predict, mean_z, discrete_features=[False])
+print("Mutual information:", MI, "bits")
+info["MI"] = MI
+
+## Linear correlation
+correlation, _ = pearsonr(z_predict, mean_z)
+info['r'] = correlation
 
 zmin, zmax = mean_z.min(), mean_z.max()
 
@@ -65,5 +86,7 @@ ylabel('Density')
 ylim(bottom=0)
 
 savefig(results_path)
+with open(info_path, 'w') as f:
+    yaml.dump(info, f)
 
 show()
