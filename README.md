@@ -4,6 +4,9 @@
 - `tensorflow`
 - `keras`
 - `imageio` (for reading images and movies)
+- `tqdm` (progress bar)
+- `PIL` (for movie annotation)
+- `imageio[ffmpeg]` (writing movies)
 
 ## 2D tracking
 This code assumes that 2D tracks have already been extracted from the movie. This can be done with various tools,
