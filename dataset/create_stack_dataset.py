@@ -26,6 +26,7 @@ root.withdraw()
 ### Files and folders
 stack_folder = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a folder')
 path = filedialog.askdirectory(initialdir=stack_folder, message='Choose a dataset folder')
+background_path = filedialog.askopenfilename(initialdir=os.path.dirname(stack_folder), message='Choose a background image')
 
 img_path = os.path.join(path, 'images')
 label_path = os.path.join(path, 'labels.csv')
@@ -46,6 +47,14 @@ P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
 image_size = P['image_size']
 half_img_size = int(image_size/2)
 
+### Background normalization
+if background_path:
+    background = imageio.imread(background_path)
+    normalization = np.mean(background)
+else:
+    normalization = 1.
+
+
 ### Data frame
 df = pd.DataFrame(columns=['filename', 'mean_z'])
 
@@ -56,7 +65,6 @@ folders = [os.path.join(stack_folder, d) for d in os.listdir(stack_folder)
 folders.sort()
 
 ### Iterate folders
-intensities = []
 j = 0
 for i, subfolder in enumerate(folders):
     z = i*P['step']
@@ -82,7 +90,6 @@ for i, subfolder in enumerate(folders):
     for image in tqdm.tqdm(movie.frames(), total=n_frames):
         data_frame = data[data['frame'] == previous_position]
         snippets = extract_cells(image, data_frame, image_size, crop=True) # border cells are kept
-        intensities.extend([np.mean(snippet) for snippet in snippets])
 
         i = 0
         for _, row in data_frame.iterrows():
@@ -99,7 +106,7 @@ for i, subfolder in enumerate(folders):
 
         previous_position = movie.position
 
-P['normalization'] = float(1./np.mean(intensities))
+P['normalization'] = normalization
 
 ## Save labels
 df.to_csv(label_path, index=False)

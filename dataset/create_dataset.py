@@ -29,6 +29,7 @@ root.withdraw()
 movie_filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a movie file')
 traj_filename = filedialog.askopenfilename(initialdir=os.path.dirname(movie_filename), message='Choose a trajectory file')
 path = filedialog.askdirectory(initialdir=os.path.dirname(traj_filename), message='Choose a dataset folder')
+background_path = filedialog.askopenfilename(initialdir=os.path.dirname(movie_filename), message='Choose a background image')
 
 data = magic_load_trajectories(traj_filename)
 img_path = os.path.join(path, 'images')
@@ -64,6 +65,13 @@ else:
     n_frames = int(P['nimages']/len(data)*total_frames)
     frame_increment = int(total_frames/n_frames)
 
+### Background normalization
+if background_path:
+    background = imageio.imread(background_path)
+    normalization = np.mean(background)
+else:
+    normalization = 1.
+
 ### Open movie
 image_path = os.path.dirname(movie_filename)
 movie = MovieFolder(image_path, step=frame_increment, auto_invert=True)
@@ -90,12 +98,10 @@ selected_segments = [segment for segment in traj if \
 data = pd.concat(selected_segments)
 
 j = 0
-intensities = []
 previous_position = 0
 for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
     snippets = extract_cells(image, data_frame, image_size, crop=True, borders=False) # remove border cells because they give away x and therefore z
-    intensities.extend([np.mean(snippet) for snippet in snippets if snippet is not None])
 
     i = 0 # this is snippet number
     for _, row in data_frame.iterrows():
@@ -114,7 +120,7 @@ for image in tqdm.tqdm(movie.frames(), total=n_frames):
 
     previous_position = movie.position
 
-P['normalization'] = float(1./np.mean(intensities))
+P['normalization'] = normalization
 
 ## Save labels
 df.to_csv(label_path, index=False)

@@ -17,7 +17,7 @@ root.withdraw()
 ### Files and folders
 traj_filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a trajectory file')
 name, ext = os.path.splitext(traj_filename)
-output_file = os.path.join(name, '_eval.yaml')
+output_file = name+'_eval.yaml'
 
 ### Load trajectories
 data = magic_load_trajectories(traj_filename)
