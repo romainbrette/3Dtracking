@@ -3,6 +3,15 @@ Augmentation
 '''
 import tensorflow as tf
 
+class IntensityNormalization(tf.keras.layers.Layer): ## doesn't this does the same scaling in all the batch?
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def call(self, inputs):
+        mean_intensity = tf.reduce_mean(inputs)
+        mean_intensity = tf.maximum(mean_intensity, 1e-8)
+        return inputs / mean_intensity
+
 class RandomThreshold(tf.keras.layers.Layer): ## doesn't this does the same scaling in all the batch?
     def __init__(self, min=0., max=.1, **kwargs):
         super().__init__(**kwargs)

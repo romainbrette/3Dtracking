@@ -100,9 +100,9 @@ def load_image(filename, label):
     img = tf.io.read_file(filename)
     img = tf.image.decode_png(img, channels=1)
     img = tf.cast(img, dtype=tf.float32)
-    mean_intensity = tf.reduce_mean(img)
-    mean_intensity = tf.maximum(mean_intensity, 1e-8)
-    img = img/mean_intensity
+    #mean_intensity = tf.reduce_mean(img)  ## normalized during training
+    #mean_intensity = tf.maximum(mean_intensity, 1e-8)
+    #img = img/mean_intensity
     #img = img*normalization # normalize so as to have mean image = 1.0
     #img = img / 255.0  # Normalize pixel values to [0, 1]
     #img = tf.image.grayscale_to_rgb(img)
@@ -131,12 +131,14 @@ if P['max_threshold']>0:
     data_augmentation = tf.keras.Sequential([
         #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
         RandomThreshold(min_threshold, max_threshold),
+        IntensityNormalization,
         intensity_scaling
         #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
     ])
 else:
     data_augmentation = tf.keras.Sequential([
         # layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
+        IntensityNormalization,
         intensity_scaling
         # layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
     ])
