@@ -7,6 +7,7 @@ TODO:
 import os
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.layers import GaussianNoise, Dropout
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('TkAgg')
@@ -42,7 +43,8 @@ parameters = [('epochs', 'Epochs', 500),
               ('min_threshold', 'Minimum threshold', 0),
               ('max_threshold', 'Maximum threshold', 0),
               ('min_scaling', 'Minimum intensity scaling', 1.),
-              ('max_scaling', 'Maximum intensity scaling', 1.)
+              ('max_scaling', 'Maximum intensity scaling', 1.),
+              ('dropout', 'Dropout rate', 0.)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -132,6 +134,7 @@ if P['max_threshold']>0:
         #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
         RandomThreshold(min_threshold, max_threshold),
         IntensityNormalization,
+        Dropout(P['dropout']),
         intensity_scaling
         #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
     ])
@@ -139,6 +142,7 @@ else:
     data_augmentation = tf.keras.Sequential([
         # layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
         IntensityNormalization,
+        Dropout(P['dropout']),
         intensity_scaling
         # layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
     ])
