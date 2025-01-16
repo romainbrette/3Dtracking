@@ -24,6 +24,7 @@ root.withdraw()
 
 ### Folders
 label_path = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a label file')
+results_path = os.path.splitext(label_path)[0]+'_results.png'
 info_path = os.path.splitext(label_path)[0]+'_results.yaml'
 info = {}
 
@@ -71,6 +72,7 @@ xlabel('Mean z (um)')
 ylabel('Precision (um)')
 tight_layout()
 
+savefig(results_path)
 with open(info_path, 'w') as f:
     yaml.dump(info, f)
 

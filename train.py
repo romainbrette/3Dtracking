@@ -40,7 +40,6 @@ parameters = [('epochs', 'Epochs', 500),
               ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
               ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
-              ('min_threshold', 'Minimum threshold', 0),
               ('max_threshold', 'Maximum threshold', 0),
               ('min_scaling', 'Minimum intensity scaling', 1.),
               ('max_scaling', 'Maximum intensity scaling', 1.),
@@ -71,9 +70,10 @@ df = pd.read_csv(label_path)
 ## Read dataset parameters
 with open(dataset_parameter_path, 'r') as f:
     P_dataset = yaml.safe_load(f)
-# Normalization factor
-normalization = P_dataset.get('normalization', 1.)
-min_threshold = P['min_threshold']*normalization
+# Normalization factor; we ignore for now
+#normalization = P_dataset.get('normalization', 1.)
+normalization = 1.
+min_threshold = 0.
 max_threshold = P['max_threshold']*normalization
 
 ## Extract filenames and labels
