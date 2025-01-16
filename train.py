@@ -125,32 +125,32 @@ train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=va
 
 ## Data augmentation
 
-if P['background_subtracted']:
-    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
-else:
-    intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
+# if P['background_subtracted']:
+#     intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
+# else:
+#     intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
 if P['max_threshold']>0:
     data_augmentation = tf.keras.Sequential([
         #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
         RandomThreshold(min_threshold, max_threshold),
         IntensityNormalization(),
-        Dropout(P['dropout']),
-        intensity_scaling
+        Dropout(P['dropout'])#,
+        #intensity_scaling
         #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
     ])
 else:
     data_augmentation = tf.keras.Sequential([
         # layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
         IntensityNormalization(),
-        Dropout(P['dropout']),
-        intensity_scaling
+        Dropout(P['dropout'])#,
+        #intensity_scaling
         # layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
     ])
-#just_rescaling = layers.Rescaling(1./255)
+just_normalization = IntensityNormalization()
 
 train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
-#val_dataset = val_dataset.map(lambda x, y: (just_rescaling(x), y), num_parallel_calls=AUTOTUNE)
-val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
+#val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
+val_dataset = val_dataset.map(lambda x, y: (just_normalization(x), y), num_parallel_calls=AUTOTUNE)
 
 ## Prepare
 train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
