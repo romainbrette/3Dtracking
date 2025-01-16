@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import tkinter as tk
 from tkinter import filedialog
-#import matplotlib
-#matplotlib.use('TkAgg')
+import matplotlib
+matplotlib.use('TkAgg')
 from scipy.ndimage import median_filter
 
 dt = 1./20.
@@ -22,7 +22,6 @@ refraction = 1.33
 root = tk.Tk()
 root.withdraw()  # Hide the main window
 filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/Deep learning movies/'), title='Choose a tracking file')
-root.destroy()
 
 ### Load FastTrack trajectories
 data = magic_load_trajectories(filename)
@@ -102,7 +101,8 @@ for segment in selected_segments[:10]:
     plot(t, speed)
 
 figure()
-speed, z = data['speed_3D']/dt, data['z']
+#speed, z = data['speed_3D']/dt, data['z']
+speed, z = data['speed']/dt, data['z']
 scatter(z, speed, alpha=0.2, s=4)
 
 figure()
@@ -111,5 +111,14 @@ subplot(211)
 scatter(x, z, alpha=0.2, s=4)
 subplot(212)
 scatter(y, z, alpha=0.2, s=4)
+
+## Distribution of attached cells
+figure()
+subplot(211)
+hist(z[speed<50.], 50)
+title("Attached cells (<50 um/s)")
+subplot(212)
+hist(z[speed>150.], 50)
+title("Swimming cells (>150 um/s)")
 
 plt.show()
