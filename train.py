@@ -133,7 +133,7 @@ if P['max_threshold']>0:
     data_augmentation = tf.keras.Sequential([
         #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
         RandomThreshold(min_threshold, max_threshold),
-        IntensityNormalization,
+        IntensityNormalization(),
         Dropout(P['dropout']),
         intensity_scaling
         #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
@@ -141,7 +141,7 @@ if P['max_threshold']>0:
 else:
     data_augmentation = tf.keras.Sequential([
         # layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-        IntensityNormalization,
+        IntensityNormalization(),
         Dropout(P['dropout']),
         intensity_scaling
         # layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
@@ -175,8 +175,6 @@ with open(model_filename, "w") as f:
 ## Compile the model
 model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0001), #'adam', # default learning_rate .001
               loss='mean_squared_error', metrics=['mae'])
-#model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0005), # default learning_rate .001
-#              loss='mean_squared_error', metrics=['mae'])
 
 reduce_lr = ReduceLROnPlateau(monitor='loss',
                               factor=0.5,         # Reduce learning rate by half
@@ -198,6 +196,10 @@ if save_checkpoint:
     callbacks = [checkpoint, reduce_lr]
 else:
     callbacks = [reduce_lr]
+
+## Save parameters (in case it is interrupted)
+with open(parameter_path, 'w') as f:
+    yaml.dump(P, f)
 
 ## Train
 t1 = time()
@@ -233,6 +235,6 @@ plt.xlabel('Epoch')
 plt.legend(['Train', 'Val'], loc='upper right')
 plt.show()
 
-## Save parameters
+## Save parameters again
 with open(parameter_path, 'w') as f:
     yaml.dump(P, f)
