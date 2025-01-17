@@ -137,6 +137,6 @@ ylabel('Speed (um/s)')
 # scatter(y, z, alpha=0.2, s=4)
 
 with open(output_file, 'w') as f:
-    yaml.dump({'abs_variation': float(BV)}, f)
+    yaml.dump(P, f)
 
 plt.show()
