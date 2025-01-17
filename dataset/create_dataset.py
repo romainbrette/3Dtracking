@@ -1,6 +1,5 @@
 '''
 Makes a dataset from a movie or tiff folder.
-** Assumes the trajectories are in pixel. **
 
 TODO:
 - remove cells with close neighbors
@@ -40,6 +39,7 @@ if not os.path.exists(img_path):
 
 ### Parameters
 parameters = [('angle', 'Angle (°)', 19.2), # signed
+              ('in_pixel', 'Trajectory in pixel', True),
               ('focus_point', 'Focus point (%)', 100), # x position where in focus
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200),
@@ -48,13 +48,17 @@ parameters = [('angle', 'Angle (°)', 19.2), # signed
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
-
 pixel_size = P['pixel_size']
 angle = P['angle']*np.pi/180.
 P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
 image_size = P['image_size']
 half_img_size = int(image_size/2)
 min_distance = P['min_distance'] # trajectories must span sufficient distance to be included
+
+### Put data in pixels
+if not P['in_pixel']:
+    data['x'] /= pixel_size
+    data['y'] /= pixel_size
 
 ### Calculate the interval between frames
 total_frames = data['frame'].nunique()
@@ -73,8 +77,11 @@ else:
     normalization = 1.
 
 ### Open movie
-image_path = os.path.dirname(movie_filename)
-movie = MovieFolder(image_path, step=frame_increment, auto_invert=True)
+if movie_filename.endswith('.zip'):
+    movie = MovieZip(movie_filename, step=frame_increment, auto_invert=True, gray=True)
+else:
+    image_path = os.path.dirname(movie_filename)
+    movie = MovieFolder(image_path, step=frame_increment, auto_invert=True, gray=True)
 
 ### Get image size
 image = movie.current_frame()
@@ -119,6 +126,9 @@ for image in tqdm.tqdm(movie.frames(), total=n_frames):
         i += 1
 
     previous_position = movie.position
+
+if not P['in_pixel']: # save in the same unit as in the trajectory file
+    df['mean_z'] *= pixel_size
 
 P['normalization'] = normalization
 

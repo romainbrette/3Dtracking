@@ -6,8 +6,9 @@ from glob import glob
 import os
 import numpy as np
 from scipy import stats
+import zipfile
 
-__all__ = ['Movie', 'MovieFolder', 'MovieFile']
+__all__ = ['Movie', 'MovieFolder', 'MovieFile', 'MovieZip']
 
 _INFINITE_SIZE = 1000000000 # maximum number of frames
 
@@ -165,3 +166,35 @@ class MovieFolder(Movie):
     # Generator giving frames one by one
     def _current_frame(self):
         return imageio.imread(self.files[self.position])
+
+# Movie folder, zipped
+class MovieZip(MovieFolder):
+    '''
+    Movie folder.
+
+    Arguments:
+        * filename: name of zipped file withimages (tiff or png)
+        * fps: frames per second
+        * pixel_size: size of a pixel in um
+    '''
+    def __init__(self, filename, **kwds):
+        Movie.__init__(self, filename, **kwds)
+
+        self.zipname = filename
+        # Get all file names
+        with zipfile.ZipFile(filename, 'r') as zip_ref:
+            # List all files in the zip
+            self.files = zip_ref.namelist() # assuming these are only images
+
+        self.files.sort()
+        self.set_auto_invert() # not the best way to do it
+
+    def __len__(self): # number of frames
+        return len(self.files)
+
+    # Generator giving frames one by one
+    def _current_frame(self):
+        with zipfile.ZipFile(self.zipname, 'r') as zip_ref:
+            with zip_ref.open(self.files[self.position]) as file:
+                image = imageio.imread(file)
+        return image
