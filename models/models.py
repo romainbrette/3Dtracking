@@ -8,6 +8,8 @@ from tensorflow.keras import layers
 from tensorflow.keras.applications import EfficientNetB0
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D, Dense, Concatenate
+from keras.initializers import Constant
+import numpy as np
 
 def newby(shape, activation='softplus'):
     '''
@@ -92,6 +94,20 @@ def simple_conv(shape):
         Dense(128, activation='leaky_relu'),
         #Lambda(lambda x: x * span), # this actually slows down the training
         Dense(1)
+    ])
+    return model
+
+def simple_conv_rectified(shape):
+    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
+        Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation='leaky_relu'),
+        #MaxPooling2D((2, 2)),
+        GlobalAveragePooling2D(),
+        Flatten(),
+        Dense(128, activation='leaky_relu'),
+        Dense(1, activation='softplus', use_bias=False),
+        Dense(1, kernel_initializer=Constant(-1.), trainable=False) # works for focus on top only
     ])
     return model
 
@@ -180,7 +196,8 @@ models = {'newby': newby,
             'conv': conv,
             'convmax': convmax,
             'batch_conv': batch_conv,
-            'simple_conv': simple_conv}
+            'simple_conv': simple_conv,
+            "simple_conv_rectified": simple_conv_rectified}
 
 if __name__ == '__main__':
     shared_model = efficient_net((96, 96, 1))
