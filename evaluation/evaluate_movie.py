@@ -31,4 +31,4 @@ BV = abs_variation(processed_table)
 
 print("Mean absolute variation of z (pix):", BV)
 with open(output_file, 'w') as f:
-    yaml.dump({'abs_variation': float(BV)}, f)
+    yaml.dump({'mean_dz': float(BV)}, f)
