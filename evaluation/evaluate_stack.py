@@ -15,7 +15,7 @@ import seaborn as sns
 matplotlib.use('TkAgg')
 from pylab import *
 import yaml
-from scipy.stats import pearsonr
+from scipy.stats import linregress
 
 pixel_size = 1.78
 
@@ -29,17 +29,20 @@ info_path = os.path.splitext(label_path)[0]+'_results.yaml'
 info = {}
 
 df = pd.read_csv(label_path)
+df = df[df['mean_z']>-550] # the recording at -600 is not good
 df = df.sort_values(by='mean_z')
 df['z_predict'] = df['z_predict']*pixel_size
 
 z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
 MAE = np.mean(np.abs(z_predict-mean_z))
 print("Mean absolute error:", MAE)
-info['MAE'] = MAE
+info['MAE'] = float(MAE)
 
 ## Linear correlation
-correlation, _ = pearsonr(z_predict, mean_z)
-info['r'] = correlation
+result = linregress(z_predict, mean_z)
+slope = result.slope
+info['slope'] = float(slope)
+print("Regression slope:", slope)
 
 fig, (ax1, ax2) = subplots(2, 1, sharex=True)
 sns.histplot(df['z_predict'], kde=True, ax=ax1)
@@ -67,6 +70,9 @@ xlabel('Mean z (um)')
 ylabel('Estimated z (um)')
 subplot(212)
 std_estimate = df.groupby('mean_z')['z_predict'].std()
+precision = float(std_estimate.mean())
+info['precision'] = precision
+print("Precision:", precision)
 std_estimate.plot(kind='line', marker='o')
 xlabel('Mean z (um)')
 ylabel('Precision (um)')

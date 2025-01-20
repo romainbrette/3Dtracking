@@ -62,7 +62,7 @@ data = pd.concat([calculate_speed(segment) for segment in selected_segments])
 
 ### Smoothness
 BV = abs_variation(data)
-P['mean_dz'] = BV
+P['mean_dz'] = float(BV)
 print('Mean temporal variation of z:', BV, 'um')
 
 ### Bimodal fit
@@ -73,9 +73,9 @@ gmm.fit(data['z'].values.reshape(-1, 1))
 means = gmm.means_.flatten()
 stds = np.sqrt(gmm.covariances_).flatten()
 dprime = np.abs(.5*(stds[0]+stds[1])/(means[1]-means[0]))
-P['mu1'], P['mu2'] = means
-P['std1'], P['std2'] = stds
-P['dprime'] = dprime
+P['mu1'], P['mu2'] = float(means[0]), float(means[1])
+P['std1'], P['std2'] = float(stds[0]), float(stds[1])
+P['dprime'] = float(dprime)
 
 print()
 print('Means:', means)

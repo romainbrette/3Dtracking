@@ -7,11 +7,11 @@ from scipy import stats
 
 __all__ = ['extract_cells']
 
-def extract_cells(image, data_frame, size, fill_value=0, crop=False, borders=True):
+def extract_cells(image, data_frame, size, fill_value=0, crop=False, background=None):
     '''
     Extract cell images from a big image with cell coordinates in pixel.
     * `size`: size of the output image
-    * `borders`: if `True`, keep cells without bounding box crossing the border
+    * `background`: if not None, returns the mean background too
     '''
     image_height, image_width = image.shape
 
@@ -52,6 +52,10 @@ def extract_cells(image, data_frame, size, fill_value=0, crop=False, borders=Tru
         dx, dy = int(dx), int(dy)
 
         snippet[dy:dy+y2-y1, dx:dx+x2-x1] = image[y1:y2, x1:x2]
-        snippets.append(snippet)
+        if background is not None:
+            background_mean = np.mean(background[y1:y2, x1:x2])
+            snippets.append((snippet, background_mean))
+        else:
+            snippets.append(snippet)
 
     return snippets

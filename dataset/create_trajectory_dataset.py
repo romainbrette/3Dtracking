@@ -42,6 +42,7 @@ if not os.path.exists(img_path):
 
 ### Parameters
 parameters = [('angle', 'Angle (°)', 19.2), # signed
+              ('in_pixel', 'Trajectory in pixel', True),
               ('focus_point', 'Focus point (%)', 100), # x position where in focus
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200),
@@ -57,6 +58,11 @@ P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
 image_size = P['image_size']
 half_img_size = int(image_size/2)
 min_distance = P['min_distance'] # trajectories must span sufficient distance to be included
+
+### Put data in pixels
+if not P['in_pixel']:
+    data['x'] /= pixel_size
+    data['y'] /= pixel_size
 
 ### Calculate the interval between frames
 total_frames = data['frame'].nunique()
@@ -104,9 +110,11 @@ data = pd.concat(selected_segments)
 j = 0
 previous_position = 0
 rows = {}
+intensities = []
 for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
     snippets = extract_cells(image, data_frame, image_size, crop=True, borders=False) # remove border cells because they give away x and therefore z
+    intensities.extend([np.mean(snippet) for snippet in snippets])
 
     i = 0 # this is snippet number
     for row_index, row in data_frame.iterrows():
@@ -139,10 +147,13 @@ df = pd.DataFrame({'filename': filenames,
                    'mean_z': z,
                    'mask': mask})
 
+if not P['in_pixel']: # save in the same unit as in the trajectory file
+    df['mean_z'] *= pixel_size
+
 ## Save labels
 df.to_csv(label_path, index=False)
 
 ## Save parameters
-P['normalization'] = normalization
+P['normalization'] = float(1./np.mean(intensities))
 with open(parameter_path, 'w') as f:
     yaml.dump(P, f)

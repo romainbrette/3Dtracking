@@ -72,9 +72,8 @@ else:
 ### Background normalization
 if background_path:
     background = imageio.imread(background_path)
-    normalization = np.mean(background)
 else:
-    normalization = 1.
+    background = None
 
 ### Open movie
 if movie_filename.endswith('.zip'):
@@ -105,23 +104,31 @@ selected_segments = [segment for segment in traj if \
 data = pd.concat(selected_segments)
 
 j = 0
+intensities = []
 previous_position = 0
 for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
-    snippets = extract_cells(image, data_frame, image_size, crop=True, borders=False) # remove border cells because they give away x and therefore z
+    snippets = extract_cells(image, data_frame, image_size, crop=True)
+    if not background_path:
+        intensities.extend([np.mean(snippet) for snippet in snippets])
 
     i = 0 # this is snippet number
     for _, row in data_frame.iterrows():
-        if snippets[i] is not None:
-            j += 1 # this is image number
-            z = (row['x'] - P['focus_point']) * np.tan(angle)  # mean z at the x position
+        j += 1 # this is image number
+        z = (row['x'] - P['focus_point']) * np.tan(angle)  # mean z at the x position
 
-            # Make the label file
+        if background_path:
+            snippet, background_mean = snippets[i]
+            row = pd.DataFrame([{'filename': 'im{:06d}.png'.format(j), 'mean_z': z, 'norm': 1/(1e-8+background_mean)}])
+        else:
+            snippet = snippets[i]
             row = pd.DataFrame([{'filename' : 'im{:06d}.png'.format(j), 'mean_z' : z}])
-            df = pd.concat([df, row], ignore_index=True)
 
-            # Save image
-            imageio.imwrite(os.path.join(img_path, 'im{:06d}.png'.format(j)), snippets[i])
+        # Make the label file
+        df = pd.concat([df, row], ignore_index=True)
+
+        # Save image
+        imageio.imwrite(os.path.join(img_path, 'im{:06d}.png'.format(j)), snippet)
 
         i += 1
 
@@ -130,7 +137,10 @@ for image in tqdm.tqdm(movie.frames(), total=n_frames):
 if not P['in_pixel']: # save in the same unit as in the trajectory file
     df['mean_z'] *= pixel_size
 
-P['normalization'] = normalization
+if not background_path:
+    P['normalization'] = float(1./np.mean(intensities))
+else:
+    P['normalization'] = 1
 
 ## Save labels
 df.to_csv(label_path, index=False)

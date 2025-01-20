@@ -12,8 +12,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 from pylab import *
 import yaml
-from sklearn.feature_selection import mutual_info_regression
-from scipy.stats import pearsonr
+from scipy.stats import linregress
 
 #pixel_size = 1.78
 
@@ -33,20 +32,19 @@ z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
 ## Error
 RMSE = ((z_predict-mean_z)**2).mean()**.5
 print("Error vs. mean_z:", RMSE)
-info["RMSE"] = RMSE
+info["RMSE"] = float(RMSE)
 
 MAE = np.mean(np.abs(z_predict-mean_z))
 print("Mean absolute error:", MAE)
-info['MAE'] = MAE
-
-## Calculate mutual information
-MI = mutual_info_regression(z_predict, mean_z, discrete_features=[False])
-print("Mutual information:", MI, "bits")
-info["MI"] = MI
+info['MAE'] = float(MAE)
 
 ## Linear correlation
-correlation, _ = pearsonr(z_predict, mean_z)
-info['r'] = correlation
+result = linregress(z_predict, mean_z)
+slope = result.slope
+info['slope'] = float(slope)
+info['r2'] = float(result.rvalue)**2
+print("Regression slope:", slope)
+print("Regression r2:", info['r2'])
 
 zmin, zmax = mean_z.min(), mean_z.max()
 
@@ -67,7 +65,7 @@ subplot(211)
 plot(mean_z, z_predict, '.k')
 plot([zmin, zmax], [zmin, zmax], 'b')
 plot(bin_centers, bin_means, "r")
-ylabel("Estimate of z (um)")
+ylabel("Estimate of z")
 
 subplot(413)
 plot(bin_centers, [np.std(z_predict[bin_indices == i]) for i in range(1, num_bins + 1)], "r", label='s.d.')
@@ -75,13 +73,13 @@ plot(bin_centers, [np.std(z_predict[bin_indices == i]) for i in range(1, num_bin
 plot(bin_centers, [np.mean((z_predict[bin_indices == i]-mean_z[bin_indices == i])**2)**.5 for i in range(1, num_bins + 1)], "k", label='error')
 plot(bin_centers, [np.mean((z_predict[bin_indices == i]-mean_z[bin_indices == i])) for i in range(1, num_bins + 1)], "b", label='bias')
 plot(bin_centers, 0*bin_centers, "--b")
-ylabel('Error (um)')
+ylabel('Error')
 #ylim(bottom=0)
 legend()
 
 subplot(414)
 plot(bin_centers, [np.sum([bin_indices == i]) for i in range(1, num_bins + 1)], "r")
-xlabel('Mean z (um)')
+xlabel('Mean z')
 ylabel('Density')
 ylim(bottom=0)
 

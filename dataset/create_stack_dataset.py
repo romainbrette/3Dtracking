@@ -35,7 +35,7 @@ if not os.path.exists(img_path):
     os.mkdir(img_path)
 
 ### Parameters
-parameters = [('step', 'Step (um)', -100),
+parameters = [('step', 'Step', -100), # in units of the trajectory files (pixel or um)
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200)
               ]
@@ -66,6 +66,7 @@ folders.sort()
 
 ### Iterate folders
 j = 0
+intensities = []
 for i, subfolder in enumerate(folders):
     z = i*P['step']
     print('z = ', z, 'um')
@@ -90,6 +91,7 @@ for i, subfolder in enumerate(folders):
     for image in tqdm.tqdm(movie.frames(), total=n_frames):
         data_frame = data[data['frame'] == previous_position]
         snippets = extract_cells(image, data_frame, image_size, crop=True) # border cells are kept
+        intensities.extend([np.mean(snippet) for snippet in snippets])
 
         i = 0
         for _, row in data_frame.iterrows():
@@ -106,7 +108,7 @@ for i, subfolder in enumerate(folders):
 
         previous_position = movie.position
 
-P['normalization'] = normalization
+P['normalization'] = float(1./np.mean(intensities))
 
 ## Save labels
 df.to_csv(label_path, index=False)
