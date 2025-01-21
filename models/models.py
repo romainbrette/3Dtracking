@@ -97,6 +97,20 @@ def simple_conv(shape):
     ])
     return model
 
+def simple_conv_2dense(shape):
+    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
+        Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (3, 3), activation='leaky_relu'),
+        #MaxPooling2D((2, 2)),
+        GlobalAveragePooling2D(),
+        Flatten(),
+        Dense(128, activation='leaky_relu'),
+        Dense(32, activation='leaky_relu'),
+        Dense(1)
+    ])
+    return model
+
 def simple_conv_rectified(shape):
     model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
         Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
@@ -197,6 +211,7 @@ models = {'newby': newby,
             'convmax': convmax,
             'batch_conv': batch_conv,
             'simple_conv': simple_conv,
+            'simple_conv_2dense': simple_conv_2dense,
             "simple_conv_rectified": simple_conv_rectified}
 
 if __name__ == '__main__':

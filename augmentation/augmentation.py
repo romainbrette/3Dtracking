@@ -2,6 +2,8 @@
 Augmentation
 '''
 import tensorflow as tf
+import numpy as np
+import tensorflow_addons as tfa
 
 class IntensityNormalization(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
@@ -64,3 +66,14 @@ class RandomOcclusion(tf.keras.layers.Layer):
         config.update({
         })
         return config
+
+# Define a custom rotation function
+def random_rotate(image, max_angle=180):
+    """Rotate the image by a random angle between -max_angle and max_angle."""
+    # Convert max_angle to radians
+    max_angle_rad = max_angle * np.pi / 180.0
+    # Generate a random angle
+    angle = tf.random.uniform([], -max_angle_rad, max_angle_rad)
+    # Rotate the image
+    rotated_image = tfa.image.rotate(image, angle, interpolation='BILINEAR')
+    return rotated_image
