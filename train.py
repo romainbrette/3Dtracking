@@ -148,7 +148,7 @@ else:
     ])
 just_normalization = IntensityNormalization()
 
-train_dataset = train_dataset.map(lambda x, y: (random_rotate(x), y), num_parallel_calls=AUTOTUNE)
+#train_dataset = train_dataset.map(lambda x, y: (random_rotate(x), y), num_parallel_calls=AUTOTUNE)
 train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 #val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 val_dataset = val_dataset.map(lambda x, y: (just_normalization(x), y), num_parallel_calls=AUTOTUNE)
