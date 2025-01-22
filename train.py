@@ -41,10 +41,11 @@ parameters = [('epochs', 'Epochs', 500),
               ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
               ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
+              ('normalize', 'Intensity normalization', True),
               ('max_threshold', 'Maximum threshold', 0),
+              ('noise_sigma', 'Noise', 0), # in pixel
               ('min_scaling', 'Minimum intensity scaling', 1.),
-              ('max_scaling', 'Maximum intensity scaling', 1.),
-              ('dropout', 'Dropout rate', 0.)
+              ('max_scaling', 'Maximum intensity scaling', 1.)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -73,9 +74,10 @@ with open(dataset_parameter_path, 'r') as f:
     P_dataset = yaml.safe_load(f)
 # Normalization factor; we ignore for now
 #normalization = P_dataset.get('normalization', 1.)
-normalization = 1.
+normalization = 1. # perhaps should be .1; also not at loading time
 min_threshold = 0.
 max_threshold = P['max_threshold']*normalization
+noise_sigma= P['noise_sigma']*normalization
 
 ## Extract filenames and labels
 filenames = df['filename'].values
@@ -118,6 +120,7 @@ shape = image.shape
 print("Image shape:", shape)
 
 # Create a tf.data.Dataset from filenames and labels
+# Maybe preload?
 dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
 dataset = dataset.map(lambda filename, label: load_image(filename, label), num_parallel_calls=tf.data.AUTOTUNE)
 
@@ -125,38 +128,45 @@ dataset = dataset.map(lambda filename, label: load_image(filename, label), num_p
 train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=False)
 
 ## Data augmentation
-if P['background_subtracted']:
-    intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
-else:
-    intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
-if P['max_threshold']>0:
-    data_augmentation = tf.keras.Sequential([
-        #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-        RandomThreshold(min_threshold, max_threshold),
-        IntensityNormalization(),
-        Dropout(P['dropout']),
-        intensity_scaling
-        #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
-    ])
-else:
-    data_augmentation = tf.keras.Sequential([
-        # layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-        IntensityNormalization(),
-        Dropout(P['dropout']),
-        intensity_scaling
-        # layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
-    ])
-just_normalization = IntensityNormalization()
+# if P['background_subtracted']:
+#     intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
+# else:
+#     intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
+# if P['max_threshold']>0:
+#     data_augmentation = tf.keras.Sequential([
+#         #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
+#         RandomThreshold(min_threshold, max_threshold),
+#         IntensityNormalization(),
+#         intensity_scaling
+#         #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
+#     ])
+# else:
+#     data_augmentation = tf.keras.Sequential([
+#         # layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
+#         IntensityNormalization(),
+#         intensity_scaling
+#         # layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
+#     ])
+# just_normalization = IntensityNormalization()
 
+## for proper rotation, do it from a 1.42 larger square then crop
 #train_dataset = train_dataset.map(lambda x, y: (random_rotate(x), y), num_parallel_calls=AUTOTUNE)
-train_dataset = train_dataset.map(lambda x, y: (random_threshold(x, max_threshold), y), num_parallel_calls=AUTOTUNE)
-train_dataset = train_dataset.map(lambda x, y: (normalize_intensity(x), y), num_parallel_calls=AUTOTUNE)
-train_dataset = train_dataset.map(lambda x, y: (random_intensity(x, P['min_scaling'], P['max_scaling']), y), num_parallel_calls=AUTOTUNE)
+train_dataset = train_dataset.map(lambda x, y: (tf.image.random_flip_left_right(x), y), num_parallel_calls=AUTOTUNE)
+train_dataset = train_dataset.map(lambda x, y: (tf.image.random_flip_up_down(x), y), num_parallel_calls=AUTOTUNE)
+if max_threshold>0:
+    train_dataset = train_dataset.map(lambda x, y: (random_threshold(x, max_threshold), y), num_parallel_calls=AUTOTUNE)
+if noise_sigma>0:
+    train_dataset = train_dataset.map(lambda x, y: (add_noise(x,noise_sigma), y), num_parallel_calls=AUTOTUNE)
+if P['normalize']:
+    train_dataset = train_dataset.map(lambda x, y: (normalize_intensity(x), y), num_parallel_calls=AUTOTUNE)
+if (P['min_scaling']!=1.) | (P['max_scaling']!=1.):
+    train_dataset = train_dataset.map(lambda x, y: (random_intensity(x, P['min_scaling'], P['max_scaling']), y), num_parallel_calls=AUTOTUNE)
 
-train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
+#train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 #val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 #val_dataset = val_dataset.map(lambda x, y: (just_normalization(x), y), num_parallel_calls=AUTOTUNE)
-val_dataset = val_dataset.map(lambda x, y: (normalize_intensity(x), y), num_parallel_calls=AUTOTUNE)
+if P['normalize']:
+    val_dataset = val_dataset.map(lambda x, y: (normalize_intensity(x), y), num_parallel_calls=AUTOTUNE)
 
 ## Prepare
 train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
@@ -164,8 +174,8 @@ val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(b
 #train_dataset = train_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 #val_dataset = val_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
-visualize_dataset(train_dataset) # doesn't show dropout
-exit(0)
+# visualize_dataset(train_dataset) # doesn't show dropout
+# exit(0)
 
 ## Load weights and model from the checkpoint
 if P['load_checkpoint']:

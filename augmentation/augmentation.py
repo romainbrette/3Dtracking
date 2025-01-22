@@ -91,3 +91,6 @@ def random_intensity(image, min_scale=0.8, max_scale=1.2):
     scale = tf.random.uniform([], min_scale, max_scale)
     scaled_image = image * scale
     return scaled_image
+
+def add_noise(image, sigma=1.):
+    return image+tf.random.normal(shape=tf.shape(image), mean=0., stddev=sigma, dtype=image.dtype)
