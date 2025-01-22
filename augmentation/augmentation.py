@@ -77,3 +77,17 @@ def random_rotate(image, max_angle=180):
     # Rotate the image
     rotated_image = tfa.image.rotate(image, angle, interpolation='BILINEAR')
     return rotated_image
+
+def normalize_intensity(image):
+    mean_intensity = tf.reduce_mean(image)
+    mean_intensity = tf.maximum(mean_intensity, 1e-8)
+    return image / mean_intensity
+
+def random_threshold(image, max_threshold):
+    threshold = tf.random.uniform([], max_threshold)
+    return tf.clip_by_value(image, threshold, 1e6) - threshold
+
+def random_intensity(image, min_scale=0.8, max_scale=1.2):
+    scale = tf.random.uniform([], min_scale, max_scale)
+    scaled_image = image * scale
+    return scaled_image

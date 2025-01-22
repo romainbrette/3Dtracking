@@ -62,7 +62,7 @@ bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2  # Midpoint of each bin for p
 
 figure()
 subplot(211)
-plot(mean_z, z_predict, '.k')
+scatter(mean_z, z_predict, alpha=0.05, s=4)
 plot([zmin, zmax], [zmin, zmax], 'b')
 plot(bin_centers, bin_means, "r")
 ylabel("Estimate of z")
@@ -82,6 +82,12 @@ plot(bin_centers, [np.sum([bin_indices == i]) for i in range(1, num_bins + 1)], 
 xlabel('Mean z')
 ylabel('Density')
 ylim(bottom=0)
+
+figure()
+#ind = (mean_z>-300) & (mean_z<-250)
+#hist(z_predict[ind]-mean_z[ind],50)
+hist(z_predict-mean_z,50)
+xlabel('Error')
 
 savefig(results_path)
 with open(info_path, 'w') as f:

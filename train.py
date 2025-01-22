@@ -149,9 +149,14 @@ else:
 just_normalization = IntensityNormalization()
 
 #train_dataset = train_dataset.map(lambda x, y: (random_rotate(x), y), num_parallel_calls=AUTOTUNE)
+train_dataset = train_dataset.map(lambda x, y: (random_threshold(x, max_threshold), y), num_parallel_calls=AUTOTUNE)
+train_dataset = train_dataset.map(lambda x, y: (normalize_intensity(x), y), num_parallel_calls=AUTOTUNE)
+train_dataset = train_dataset.map(lambda x, y: (random_intensity(x, P['min_scaling'], P['max_scaling']), y), num_parallel_calls=AUTOTUNE)
+
 train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
 #val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
-val_dataset = val_dataset.map(lambda x, y: (just_normalization(x), y), num_parallel_calls=AUTOTUNE)
+#val_dataset = val_dataset.map(lambda x, y: (just_normalization(x), y), num_parallel_calls=AUTOTUNE)
+val_dataset = val_dataset.map(lambda x, y: (normalize_intensity(x), y), num_parallel_calls=AUTOTUNE)
 
 ## Prepare
 train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
@@ -159,7 +164,8 @@ val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(b
 #train_dataset = train_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 #val_dataset = val_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
-#visualize_dataset(train_dataset) # doesn't show dropout
+visualize_dataset(train_dataset) # doesn't show dropout
+exit(0)
 
 ## Load weights and model from the checkpoint
 if P['load_checkpoint']:

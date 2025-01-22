@@ -50,8 +50,8 @@ data = filter_shape(data)
 segments = segments_from_table(data)
 
 ### Filter segments: longer than 1 s and spanning a distance of at least min_distance
-min_distance = 0  # in um
-min_duration = .5
+min_distance = 300  # in um
+min_duration = 0
 selected_segments = [segment for segment in segments if len(segment) > int(min_duration / dt) and \
                      ((segment['x'].max() - segment['x'].min()) ** 2 + (
                              segment['y'].max() - segment['y'].min()) ** 2) > min_distance ** 2]
@@ -110,7 +110,7 @@ title("Swimming cells (>150 um/s)")
 tight_layout()
 
 figure()
-pick = random.sample(selected_segments, 25)
+pick = random.sample(selected_segments, 15)
 subplot(211)
 for segment in pick:
     z, t = segment['z'], segment['frame']*dt
@@ -135,6 +135,15 @@ ylabel('Speed (um/s)')
 # scatter(x, z, alpha=0.2, s=4)
 # subplot(212)
 # scatter(y, z, alpha=0.2, s=4)
+
+# figure()
+# for segment in pick:
+#     z, x = segment['z'], segment['x']
+#     #z = median_filter(z, size=11)
+#     plot(x, z)
+#
+# figure()
+# scatter(data['x'], data['z'], alpha=0.05, s=4)
 
 with open(output_file, 'w') as f:
     yaml.dump(P, f)
