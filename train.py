@@ -45,7 +45,8 @@ parameters = [('epochs', 'Epochs', 500),
               ('max_threshold', 'Maximum threshold', 0),
               ('noise_sigma', 'Noise', 0), # in pixel
               ('min_scaling', 'Minimum intensity scaling', 1.),
-              ('max_scaling', 'Maximum intensity scaling', 1.)
+              ('max_scaling', 'Maximum intensity scaling', 1.),
+              ('visualize', 'Visualize only', False)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -174,8 +175,9 @@ val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(b
 #train_dataset = train_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 #val_dataset = val_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
-# visualize_dataset(train_dataset) # doesn't show dropout
-# exit(0)
+if P['visualize']:
+    visualize_dataset(train_dataset) # doesn't show dropout
+    exit(0)
 
 ## Load weights and model from the checkpoint
 if P['load_checkpoint']:
