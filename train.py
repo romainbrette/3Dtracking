@@ -152,7 +152,7 @@ train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefet
 val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
 if P['visualize']:
-    visualize_dataset(train_dataset) # doesn't show dropout
+    visualize_dataset(train_dataset)
     exit(0)
 
 ## Load weights and model from the checkpoint

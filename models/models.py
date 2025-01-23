@@ -48,13 +48,13 @@ def efficient_net(shape):
     EfficientNet models expect their inputs to be float tensors of pixels with values in the [0-255] range.
     '''
     base_model = EfficientNetB0(include_top=False, weights='imagenet',
-                                input_shape=(shape[0], shape[1], 3))  # Keep EfficientNet's input shape
+                                input_shape=(shape[0], shape[1], 3))
 
     # Create the model
     inputs = Input(shape=shape)
     x = tf.image.grayscale_to_rgb(inputs)  # Expand grayscale to 3 channels in the input pipeline
     x = base_model(x, training=False)  # Use EfficientNet as base
-    x = GlobalAveragePooling2D()(x)  # Add global average pooling
+    x = GlobalAveragePooling2D()(x)  # Add global average pooling # actually this can be obtained with pooling=True
     x = Dense(128, activation='relu')(x)
     outputs = Dense(1, activation='linear')(x)  # Regression output layer
     model = Model(inputs, outputs)

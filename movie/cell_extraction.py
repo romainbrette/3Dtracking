@@ -12,6 +12,7 @@ def extract_cells(image, data_frame, size, fill_value=0, crop=False, background=
     Extract cell images from a big image with cell coordinates in pixel.
     * `size`: size of the output image
     * `background`: if not None, returns the mean background too
+    * `crop`: if True, crop a bounding box around the cell based on ellipse parameters
     '''
     image_height, image_width = image.shape
 
