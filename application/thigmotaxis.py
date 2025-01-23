@@ -105,7 +105,7 @@ hist(z[speed<50.], 50)
 title("Attached cells (<50 um/s)")
 subplot(313)
 hist(z[speed>150.], 50)
-xlabel('Speed (um/s)')
+xlabel('z (um)')
 title("Swimming cells (>150 um/s)")
 tight_layout()
 

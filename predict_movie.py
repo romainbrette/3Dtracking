@@ -35,7 +35,7 @@ data = magic_load_trajectories(traj_filename)
 data['z'] = np.nan
 
 ### Parameters
-parameters = [('normalize', 'Intensity normalization', True)]
+parameters = [('normalize', 'Intensity normalization', False)]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
 
