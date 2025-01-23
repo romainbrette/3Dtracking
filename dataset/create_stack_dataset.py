@@ -19,6 +19,8 @@ import imageio
 import tqdm
 from movie.movie import *
 from movie.cell_extraction import *
+import zipfile
+import io
 
 root = tk.Tk()
 root.withdraw()
@@ -31,13 +33,12 @@ background_path = filedialog.askopenfilename(initialdir=os.path.dirname(stack_fo
 img_path = os.path.join(path, 'images')
 label_path = os.path.join(path, 'labels.csv')
 parameter_path = os.path.join(path, 'labels.yaml')
-if not os.path.exists(img_path):
-    os.mkdir(img_path)
 
 ### Parameters
 parameters = [('step', 'Step', -100), # in units of the trajectory files (pixel or um)
               ('pixel_size', 'Pixel size (um)', 5.),
-              ('image_size', 'Image size (um)', 200)
+              ('image_size', 'Image size (um)', 200),
+              ('zip', 'Zip', True)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -46,6 +47,9 @@ pixel_size = P['pixel_size']
 P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
 image_size = P['image_size']
 half_img_size = int(image_size/2)
+
+if (not P['zip']) & (not os.path.exists(img_path)):
+    os.mkdir(img_path)
 
 ### Background normalization
 if background_path:
@@ -65,6 +69,8 @@ folders = [os.path.join(stack_folder, d) for d in os.listdir(stack_folder)
 folders.sort()
 
 ### Iterate folders
+if P['zip']:
+    zip_ref = zipfile.ZipFile(img_path+'.zip', mode='w', compression=zipfile.ZIP_DEFLATED)
 j = 0
 intensities = []
 for i, subfolder in enumerate(folders):
@@ -102,11 +108,20 @@ for i, subfolder in enumerate(folders):
             df = pd.concat([df, row], ignore_index=True)
 
             # Save image
-            imageio.imwrite(os.path.join(img_path, 'im{:05d}.png'.format(j)), snippets[i])
+            filename = 'im{:05d}.png'.format(j)
+            if P['zip']:
+                image_bytes = io.BytesIO()
+                imageio.imwrite(image_bytes, snippets[i], format='png')
+                image_bytes.seek(0)  # Move the cursor to the start of the BytesIO object
+                zip_ref.writestr(filename, image_bytes.read())  # Add image as 'image1.png'
+            else:
+                imageio.imwrite(os.path.join(img_path, filename, snippets[i]))
 
             i += 1
 
         previous_position = movie.position
+if P['zip']:
+    zip_ref.close()
 
 P['normalization'] = float(1./np.mean(intensities))
 

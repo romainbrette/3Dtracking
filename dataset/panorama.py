@@ -11,6 +11,8 @@ import tqdm
 import yaml
 import imageio
 import random
+import zipfile
+import io
 
 n_images = 20
 
@@ -20,6 +22,11 @@ root.withdraw()
 ### Folders
 path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a dataset folder')
 img_path = os.path.join(path, 'images')
+if os.path.exists(img_path+'.zip'):
+    img_path = img_path+'.zip'
+    zipped = True
+else:
+    zipped = False
 label_path = os.path.join(path, 'labels.csv')
 big_img_path = os.path.join(path, 'images.png')
 
@@ -40,7 +47,14 @@ for i in range(n_images):
         filenames = random.sample(list(z_slice['filename'].values), n_images)
     except ValueError:
         continue
-    images = [imageio.imread(os.path.join(img_path, file)) for file in filenames]
+    if zipped:
+        images = []
+        with zipfile.ZipFile(img_path, 'r') as zip_ref:
+            for filename in filenames:
+                with zip_ref.open(filename) as file:
+                    images.append(imageio.imread(file))
+    else:
+        images = [imageio.imread(os.path.join(img_path, file)) for file in filenames]
     columns.append(np.vstack(images))
 
 imageio.imwrite(big_img_path, np.hstack(columns))

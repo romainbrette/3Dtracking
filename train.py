@@ -23,6 +23,9 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau
 from augmentation.augmentation import *
 from models import *
 from gui.visualization import *
+import tqdm
+import zipfile
+import io
 
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -32,6 +35,11 @@ root.withdraw()
 ### Folders
 path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a dataset folder')
 img_path = os.path.join(path, 'images')
+if os.path.exists(img_path+'.zip'):
+    img_path = img_path+'.zip'
+    zipped = True
+else:
+    zipped = False
 label_path = os.path.join(path, 'labels.csv')
 
 ### Parameters
@@ -78,7 +86,7 @@ with open(dataset_parameter_path, 'r') as f:
 normalization = 1. # perhaps should be .1; also not at loading time
 min_threshold = 0.
 max_threshold = P['max_threshold']*normalization
-noise_sigma= P['noise_sigma']*normalization
+noise_sigma = P['noise_sigma']*normalization
 
 ## Extract filenames and labels
 filenames = df['filename'].values
@@ -92,64 +100,36 @@ else:
         labels = df['mean_z'].values
     except KeyError:
         labels = df['z'].values
-filenames = [os.path.join(img_path, name) for name in filenames]
+#filenames = [os.path.join(img_path, name) for name in filenames]
 n = len(filenames)
 
-## Range of output values
-span = float(labels.max()-labels.max())
-
 ## Load images
-
-# Create a mapping function for loading and preprocessing images
-def load_image(filename, label):
+def load_image(filename):
     # Load the image from the file path
     img = tf.io.read_file(filename)
     img = tf.image.decode_png(img, channels=1)
     img = tf.cast(img, dtype=tf.float32)
-    #mean_intensity = tf.reduce_mean(img)  ## normalized during training
-    #mean_intensity = tf.maximum(mean_intensity, 1e-8)
-    #img = img/mean_intensity
-    #img = img*normalization # normalize so as to have mean image = 1.0
-    #img = img / 255.0  # Normalize pixel values to [0, 1]
-    #img = tf.image.grayscale_to_rgb(img)
-    return img, label
+    return img
+
+if zipped:
+    with zipfile.ZipFile(img_path, 'r') as zip_ref:
+        file_data = {name: zip_ref.read(name) for name in zip_ref.namelist()}
+        images = [tf.cast(tf.image.decode_png(data, channels=1), dtype=tf.float32)
+                  for file_name, data in tqdm.tqdm(file_data.items(), desc='loading dataset')]
+else:
+    images = [load_image(os.path.join(img_path, name)) for name in tqdm.tqdm(filenames, desc='loading dataset')]
 
 ## Get image shape
-image, _ = load_image(filenames[0], None)
-image = np.array(image)
+image = np.array(images[0])
 shape = image.shape
 print("Image shape:", shape)
 
-# Create a tf.data.Dataset from filenames and labels
-# Maybe preload?
-dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
-dataset = dataset.map(lambda filename, label: load_image(filename, label), num_parallel_calls=tf.data.AUTOTUNE)
+dataset = tf.data.Dataset.from_tensor_slices((images, labels))
 
 ## Make training and validation sets
 train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=False)
 
 ## Data augmentation
-# if P['background_subtracted']:
-#     intensity_scaling = RandomIntensityScaling(P['min_scaling'], P['max_scaling'])
-# else:
-#     intensity_scaling = layers.RandomBrightness(factor=[P['min_scaling'], P['max_scaling']], value_range=[0., 1.])
-# if P['max_threshold']>0:
-#     data_augmentation = tf.keras.Sequential([
-#         #layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-#         RandomThreshold(min_threshold, max_threshold),
-#         IntensityNormalization(),
-#         intensity_scaling
-#         #layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
-#     ])
-# else:
-#     data_augmentation = tf.keras.Sequential([
-#         # layers.RandomFlip("horizontal_and_vertical"), ### This crashes with the GPU!!
-#         IntensityNormalization(),
-#         intensity_scaling
-#         # layers.RandomRotation(1., fill_mode="constant", fill_value=1.-black_background*1.)  ### This crashes with the GPU!!
-#     ])
-# just_normalization = IntensityNormalization()
-
 ## for proper rotation, do it from a 1.42 larger square then crop
 #train_dataset = train_dataset.map(lambda x, y: (random_rotate(x), y), num_parallel_calls=AUTOTUNE)
 train_dataset = train_dataset.map(lambda x, y: (tf.image.random_flip_left_right(x), y), num_parallel_calls=AUTOTUNE)
@@ -163,17 +143,13 @@ if P['normalize']:
 if (P['min_scaling']!=1.) | (P['max_scaling']!=1.):
     train_dataset = train_dataset.map(lambda x, y: (random_intensity(x, P['min_scaling'], P['max_scaling']), y), num_parallel_calls=AUTOTUNE)
 
-#train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
-#val_dataset = val_dataset.map(lambda x, y: (data_augmentation(x), y), num_parallel_calls=AUTOTUNE)
-#val_dataset = val_dataset.map(lambda x, y: (just_normalization(x), y), num_parallel_calls=AUTOTUNE)
+# Validation dataset: just intensity normalization
 if P['normalize']:
     val_dataset = val_dataset.map(lambda x, y: (normalize_intensity(x), y), num_parallel_calls=AUTOTUNE)
 
-## Prepare
+## Prepare with some shuffling
 train_dataset = train_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 val_dataset = val_dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
-#train_dataset = train_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
-#val_dataset = val_dataset.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
 if P['visualize']:
     visualize_dataset(train_dataset) # doesn't show dropout

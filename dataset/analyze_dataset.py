@@ -15,6 +15,8 @@ import yaml
 from scipy.stats import linregress
 import imageio
 import tqdm
+import zipfile
+import io
 
 root = tk.Tk()
 root.withdraw()
@@ -22,6 +24,11 @@ root.withdraw()
 ### Folders
 path = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a dataset folder')
 img_path = os.path.join(path, 'images')
+if os.path.exists(img_path+'.zip'):
+    img_path = img_path+'.zip'
+    zipped = True
+else:
+    zipped = False
 label_path = os.path.join(path, 'labels.csv')
 dataset_parameter_path = os.path.join(path, 'labels.yaml')
 
@@ -43,7 +50,13 @@ filenames = [os.path.join(img_path, name) for name in filenames]
 n = len(filenames)
 
 ## Load images
-images = [imageio.v3.imread(filename) for filename in tqdm.tqdm(filenames, desc='loading')]
+if zipped:
+    with zipfile.ZipFile(img_path, 'r') as zip_ref:
+        file_data = [zip_ref.read(name) for name in zip_ref.namelist()]
+        images = [imageio.v3.imread(io.BytesIO(zip_ref.read(data)))
+                  for data in tqdm.tqdm(zip_ref.namelist(), desc='loading dataset')]
+else:
+    images = [imageio.v3.imread(os.path.join(img_path, name)) for name in tqdm.tqdm(filenames, desc='loading')]
 intensity = np.array([np.mean(image) for image in images])
 std = np.array([np.std(image) for image in images])
 

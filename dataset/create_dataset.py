@@ -2,10 +2,9 @@
 Makes a dataset from a movie or tiff folder.
 
 TODO:
-- remove cells with close neighbors
+- remove cells with close neighbors?
 - load movies (not just tiffs)
 - automatic focus determination
-- deal with trajectories in um
 '''
 import numpy as np
 import os
@@ -20,6 +19,8 @@ import imageio
 import tqdm
 from movie.movie import *
 from movie.cell_extraction import *
+import zipfile
+import io
 
 root = tk.Tk()
 root.withdraw()
@@ -28,14 +29,11 @@ root.withdraw()
 movie_filename = filedialog.askopenfilename(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a movie file')
 traj_filename = filedialog.askopenfilename(initialdir=os.path.dirname(movie_filename), message='Choose a trajectory file')
 path = filedialog.askdirectory(initialdir=os.path.dirname(traj_filename), message='Choose a dataset folder')
-background_path = filedialog.askopenfilename(initialdir=os.path.dirname(movie_filename), message='Choose a background image')
 
 data = magic_load_trajectories(traj_filename)
 img_path = os.path.join(path, 'images')
 label_path = os.path.join(path, 'labels.csv')
 parameter_path = os.path.join(path, 'labels.yaml')
-if not os.path.exists(img_path):
-    os.mkdir(img_path)
 
 ### Parameters
 parameters = [('angle', 'Angle (°)', 19.2), # signed
@@ -44,7 +42,8 @@ parameters = [('angle', 'Angle (°)', 19.2), # signed
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200),
               ('nimages', 'Number of images', 0),
-              ('min_distance', 'Minimum trajectory size (um)', 300.)
+              ('min_distance', 'Minimum trajectory size (um)', 300.),
+              ('zip', 'Zip', True)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
@@ -54,6 +53,9 @@ P['image_size'] = (int(P['image_size']/pixel_size)//32)*32
 image_size = P['image_size']
 half_img_size = int(image_size/2)
 min_distance = P['min_distance'] # trajectories must span sufficient distance to be included
+
+if (not P['zip']) & (not os.path.exists(img_path)):
+    os.mkdir(img_path)
 
 ### Put data in pixels
 if not P['in_pixel']:
@@ -68,12 +70,6 @@ if P['nimages'] == 0: # all images
 else:
     n_frames = int(P['nimages']/len(data)*total_frames)
     frame_increment = int(total_frames/n_frames)
-
-### Background normalization
-if background_path:
-    background = imageio.imread(background_path)
-else:
-    background = None
 
 ### Open movie
 if movie_filename.endswith('.zip'):
@@ -106,44 +102,47 @@ selected_segments = [segment for segment in traj if \
                      ((segment['x'].max()-segment['x'].min())**2 + (segment['y'].max()-segment['y'].min())**2)>(min_distance/pixel_size)**2]
 data = pd.concat(selected_segments)
 
+if P['zip']:
+    zip_ref = zipfile.ZipFile(img_path+'.zip', mode='w', compression=zipfile.ZIP_DEFLATED)
 j = 0
 intensities = []
 previous_position = 0
 for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
     snippets = extract_cells(image, data_frame, image_size, crop=True)
-    if not background_path:
-        intensities.extend([np.mean(snippet) for snippet in snippets])
+    intensities.extend([np.mean(snippet) for snippet in snippets])
 
     i = 0 # this is snippet number
     for _, row in data_frame.iterrows():
         j += 1 # this is image number
         z = (row['x'] - P['focus_point']) * np.tan(angle)  # mean z at the x position
 
-        if background_path:
-            snippet, background_mean = snippets[i]
-            row = pd.DataFrame([{'filename': 'im{:06d}.png'.format(j), 'mean_z': z, 'norm': 1/(1e-8+background_mean)}])
-        else:
-            snippet = snippets[i]
-            row = pd.DataFrame([{'filename' : 'im{:06d}.png'.format(j), 'mean_z' : z}])
+        snippet = snippets[i]
+        row = pd.DataFrame([{'filename' : 'im{:06d}.png'.format(j), 'mean_z' : z}])
 
         # Make the label file
         df = pd.concat([df, row], ignore_index=True)
 
         # Save image
-        imageio.imwrite(os.path.join(img_path, 'im{:06d}.png'.format(j)), snippet)
+        filename = 'im{:06d}.png'.format(j)
+        if P['zip']:
+            image_bytes = io.BytesIO()
+            imageio.imwrite(image_bytes, snippet, format='png')
+            image_bytes.seek(0)  # Move the cursor to the start of the BytesIO object
+            zip_ref.writestr(filename, image_bytes.read())  # Add image as 'image1.png'
+        else:
+            imageio.imwrite(os.path.join(img_path, filename, snippet))
 
         i += 1
 
     previous_position = movie.position
+if P['zip']:
+    zip_ref.close()
 
 if not P['in_pixel']: # save in the same unit as in the trajectory file
     df['mean_z'] *= pixel_size
 
-if not background_path:
-    P['normalization'] = float(1./np.mean(intensities))
-else:
-    P['normalization'] = 1
+P['normalization'] = float(1./np.mean(intensities))
 
 ## Save labels
 df.to_csv(label_path, index=False)
