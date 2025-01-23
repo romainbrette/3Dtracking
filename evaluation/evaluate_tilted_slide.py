@@ -83,12 +83,6 @@ xlabel('Mean z')
 ylabel('Density')
 ylim(bottom=0)
 
-figure()
-#ind = (mean_z>-300) & (mean_z<-250)
-#hist(z_predict[ind]-mean_z[ind],50)
-hist(z_predict-mean_z,50)
-xlabel('Error')
-
 savefig(results_path)
 with open(info_path, 'w') as f:
     yaml.dump(info, f)
