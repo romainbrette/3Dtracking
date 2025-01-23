@@ -28,14 +28,13 @@ root.withdraw()
 ### Files and folders
 stack_folder = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a folder')
 path = filedialog.askdirectory(initialdir=stack_folder, message='Choose a dataset folder')
-background_path = filedialog.askopenfilename(initialdir=os.path.dirname(stack_folder), message='Choose a background image')
 
 img_path = os.path.join(path, 'images')
 label_path = os.path.join(path, 'labels.csv')
 parameter_path = os.path.join(path, 'labels.yaml')
 
 ### Parameters
-parameters = [('step', 'Step', -100), # in units of the trajectory files (pixel or um)
+parameters = [('step', 'Step', -100.), # in units of the trajectory files (pixel or um)
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200),
               ('zip', 'Zip', True)
@@ -50,14 +49,6 @@ half_img_size = int(image_size/2)
 
 if (not P['zip']) & (not os.path.exists(img_path)):
     os.mkdir(img_path)
-
-### Background normalization
-if background_path:
-    background = imageio.imread(background_path)
-    normalization = np.mean(background)
-else:
-    normalization = 1.
-
 
 ### Data frame
 df = pd.DataFrame(columns=['filename', 'mean_z'])

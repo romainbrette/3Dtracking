@@ -32,7 +32,8 @@ dataset_parameter_path = os.path.join(path, 'labels.yaml')
 model_filename = filedialog.askdirectory(initialdir=path, message='Choose a model')
 
 ## Parameters
-parameters = [('suffix', 'Suffix', '')]
+parameters = [('suffix', 'Suffix', ''),
+              ('normalize', 'Intensity normalization', False)]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
 
@@ -59,9 +60,10 @@ model = load_model(model_filename, custom_objects={'modified_mae' : None, 'mean_
 def preprocess_image(image):
     image = tf.image.decode_png(image, channels=1)
     image = tf.cast(image, tf.float32)
-    mean_intensity = tf.reduce_mean(image)
-    mean_intensity = tf.maximum(mean_intensity, 1e-8)
-    image = image/mean_intensity
+    if P['normalize']:
+        mean_intensity = tf.reduce_mean(image)
+        mean_intensity = tf.maximum(mean_intensity, 1e-8)
+        image = image/mean_intensity
     return image
 
 if zipped:

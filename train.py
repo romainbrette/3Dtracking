@@ -49,7 +49,7 @@ parameters = [('epochs', 'Epochs', 500),
               ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
               ('filename_suffix', 'Filename suffix', ''),
               ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
-              ('normalize', 'Intensity normalization', True),
+              ('normalize', 'Intensity normalization', False),
               ('max_threshold', 'Maximum threshold', 0),
               ('noise_sigma', 'Noise', 0), # in pixel
               ('min_scaling', 'Minimum intensity scaling', 1.),

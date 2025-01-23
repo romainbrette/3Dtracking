@@ -55,7 +55,7 @@ def efficient_net(shape):
     x = tf.image.grayscale_to_rgb(inputs)  # Expand grayscale to 3 channels in the input pipeline
     x = base_model(x, training=False)  # Use EfficientNet as base
     x = GlobalAveragePooling2D()(x)  # Add global average pooling
-    x = Dense(128, activation='relu')(x)  # Optional dense layer
+    x = Dense(128, activation='relu')(x)
     outputs = Dense(1, activation='linear')(x)  # Regression output layer
     model = Model(inputs, outputs)
     return model

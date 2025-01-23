@@ -3,17 +3,13 @@ Predict z on a movie (tiff folder).
 '''
 import numpy as np
 import os
-import pandas as pd
 from tkinter import filedialog
 from gui.gui import *
 import yaml
 import tkinter as tk
 from tracking.load_tracking import *
-import imageio
-import imageio.v3 as iio
 import tqdm
 from tensorflow.keras.models import load_model
-import tensorflow as tf
 from movie.movie import *
 from movie.cell_extraction import *
 
@@ -39,10 +35,9 @@ data = magic_load_trajectories(traj_filename)
 data['z'] = np.nan
 
 ### Parameters
-# parameters = [('pixel_size', 'Pixel size (um)', 5.)]
-# param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
-# P = param_dialog.value
-# pixel_size = P['pixel_size']
+parameters = [('normalize', 'Intensity normalization', True)]
+param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
+P = param_dialog.value
 
 ### Open movie
 image_path = os.path.dirname(movie_filename)
@@ -59,7 +54,10 @@ for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
     if len(data_frame)>0:
         snippets = extract_cells(image, data_frame, image_size, crop=True)
-        predictions = model.predict(np.array([snippet/(np.mean(snippet)+1e-8) for snippet in snippets]))
+        if P['normalize']:
+            predictions = model.predict(np.array([snippet / (np.mean(snippet) + 1e-8) for snippet in snippets]))
+        else:
+            predictions = model.predict(np.array(snippets))
         #normalization = 1./np.mean([np.mean(snippet) for snippet in snippets])
         #predictions = model.predict(np.array([snippet*normalization for snippet in snippets]))
         data.loc[data['frame'] == previous_position, 'z'] = predictions
