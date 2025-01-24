@@ -51,7 +51,7 @@ parameters = [('epochs', 'Epochs', 500),
               ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
               ('normalize', 'Intensity normalization', False),
               ('max_threshold', 'Maximum threshold', 0),
-              ('noise_sigma', 'Noise', 0), # in pixel
+              ('noise_sigma', 'Noise', 0), # in pixel intensity
               ('min_scaling', 'Minimum intensity scaling', 1.),
               ('max_scaling', 'Maximum intensity scaling', 1.),
               ('visualize', 'Visualize only', False)

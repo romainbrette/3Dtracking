@@ -49,6 +49,7 @@ def efficient_net(shape):
     '''
     base_model = EfficientNetB0(include_top=False, weights='imagenet',
                                 input_shape=(shape[0], shape[1], 3))
+    #base_model.trainable = False
 
     # Create the model
     inputs = Input(shape=shape)

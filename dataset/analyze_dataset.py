@@ -48,6 +48,7 @@ except KeyError:
 filenames = df['filename'].values
 filenames = [os.path.join(img_path, name) for name in filenames]
 n = len(filenames)
+print(n, "images")
 
 ## Load images
 if zipped:
