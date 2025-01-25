@@ -54,6 +54,7 @@ parameters = [('epochs', 'Epochs', 500),
               ('noise_sigma', 'Noise', 0), # in pixel intensity
               ('min_scaling', 'Minimum intensity scaling', 1.),
               ('max_scaling', 'Maximum intensity scaling', 1.),
+              ('learning_rate', 'Learning rate', 5e-4),
               ('visualize', 'Visualize only', False)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
@@ -170,7 +171,7 @@ with open(model_filename, "w") as f:
     sys.stdout = sys.__stdout__  # Reset to default
 
 ## Compile the model
-model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0005), #'adam', # default learning_rate .001
+model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=P['learning_rate']), #'adam', # default learning_rate .001
               loss='mean_squared_error', metrics=['mae'])
 
 reduce_lr = ReduceLROnPlateau(monitor='loss',
