@@ -43,18 +43,18 @@ def newby(shape, activation='softplus'):
     model = Model(inputs=inputs, outputs=output)
     return model
 
-def efficient_net(shape):
+def efficient_net(shape, trainable=True):
     '''
     EfficientNet models expect their inputs to be float tensors of pixels with values in the [0-255] range.
     '''
     base_model = EfficientNetB0(include_top=False, weights='imagenet',
                                 input_shape=(shape[0], shape[1], 3))
-    #base_model.trainable = False
+    base_model.trainable = trainable
 
     # Create the model
     inputs = Input(shape=shape)
     x = tf.image.grayscale_to_rgb(inputs)  # Expand grayscale to 3 channels in the input pipeline
-    x = base_model(x, training=False)  # Use EfficientNet as base
+    x = base_model(x, training=False)
     x = GlobalAveragePooling2D()(x)  # Add global average pooling # actually this can be obtained with pooling=True
     x = Dense(128, activation='relu')(x)
     outputs = Dense(1, activation='linear')(x)  # Regression output layer
@@ -89,6 +89,20 @@ def simple_conv(shape):
         Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),
         Conv2D(64, (3, 3), activation='leaky_relu'),
+        #MaxPooling2D((2, 2)),
+        GlobalAveragePooling2D(),
+        Flatten(),
+        Dense(128, activation='leaky_relu'),
+        #Lambda(lambda x: x * span), # this actually slows down the training
+        Dense(1)
+    ])
+    return model
+
+def larger_simple_conv(shape):
+    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
+        Conv2D(32, (5, 5), activation='leaky_relu', input_shape=shape),
+        MaxPooling2D((2, 2)),
+        Conv2D(64, (5, 5), activation='leaky_relu'),
         #MaxPooling2D((2, 2)),
         GlobalAveragePooling2D(),
         Flatten(),
@@ -213,7 +227,8 @@ models = {'newby': newby,
             'batch_conv': batch_conv,
             'simple_conv': simple_conv,
             'simple_conv_2dense': simple_conv_2dense,
-            "simple_conv_rectified": simple_conv_rectified}
+            "simple_conv_rectified": simple_conv_rectified,
+            "larger_simple_conv": larger_simple_conv}
 
 if __name__ == '__main__':
     shared_model = efficient_net((96, 96, 1))

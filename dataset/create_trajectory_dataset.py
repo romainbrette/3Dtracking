@@ -92,6 +92,9 @@ df = pd.DataFrame(columns=['filename', 'mean_z'])
 data = data[(data['x']>half_img_size) & (data['y']>half_img_size) & \
         (data['x']+half_img_size<width) & (data['y']+half_img_size<height)]
 
+### Exclude cells that are too big or too small (cell pairs)
+data = filter_shape(data, length=(10./pixel_size, 200./pixel_size), width=(8./pixel_size, 80./pixel_size))
+
 ### Exclude stationary trajectories
 traj = segments_from_table(data)
 selected_segments = [segment for segment in traj if \

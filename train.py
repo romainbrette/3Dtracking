@@ -170,7 +170,7 @@ with open(model_filename, "w") as f:
     sys.stdout = sys.__stdout__  # Reset to default
 
 ## Compile the model
-model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0001), #'adam', # default learning_rate .001
+model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=0.0005), #'adam', # default learning_rate .001
               loss='mean_squared_error', metrics=['mae'])
 
 reduce_lr = ReduceLROnPlateau(monitor='loss',
