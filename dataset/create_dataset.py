@@ -2,6 +2,7 @@
 Makes a dataset from a movie or tiff folder.
 
 TODO:
+- Produce data
 - remove cells with close neighbors?
 - load movies (not just tiffs)
 - automatic focus determination
@@ -43,6 +44,8 @@ parameters = [('angle', 'Angle (°)', 19.2), # signed
               ('image_size', 'Image size (um)', 200),
               ('nimages', 'Number of images', 0),
               ('min_distance', 'Minimum trajectory size (um)', 300.),
+              ('x_min', 'Minimum x', 0),
+              ('x_max', 'Maximum x', 100000),
               ('zip', 'Zip', True)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
@@ -61,6 +64,8 @@ if (not P['zip']) & (not os.path.exists(img_path)):
 if not P['in_pixel']:
     data['x'] /= pixel_size
     data['y'] /= pixel_size
+    data['length'] /= pixel_size
+    data['width'] /= pixel_size
 
 ### Calculate the interval between frames
 total_frames = data['frame'].nunique()
@@ -88,6 +93,9 @@ df = pd.DataFrame(columns=['filename', 'mean_z'])
 # could be vectorized:
 #mean_z = (df['x'] - P['focus_point']) * np.tan(P['angle'])  # mean z at the x position
 #mean_z = mean_z.iloc[::frame_increment]
+
+### Crop
+data = data[(data['x']>=P['x_min']) & (data['x']<=P['x_max'])]
 
 ### Exclude cells close to the border
 data = data[(data['x']>half_img_size) & (data['y']>half_img_size) & \
