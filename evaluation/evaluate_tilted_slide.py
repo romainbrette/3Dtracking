@@ -26,6 +26,10 @@ info_path = os.path.splitext(label_path)[0]+'_results.yaml'
 info = {}
 
 df = pd.read_csv(label_path)
+
+# Take last 20% (validation part)
+#df = df.iloc[-len(df)//5:]
+
 #df['z_predict'] = df['z_predict']/1.78 #pixel_size
 z_predict, mean_z = df['z_predict'].values, df['mean_z'].values
 

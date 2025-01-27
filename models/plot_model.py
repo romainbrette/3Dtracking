@@ -12,7 +12,10 @@ root.withdraw()
 
 ## Model
 model_filename = filedialog.askdirectory(initialdir=os.path.expanduser('~/Downloads/'), message='Choose a model')
-img_filename = model_filename+'.png'
+img_filename = model_filename+'.pdf'
 
 model = load_model(model_filename)
-keras.utils.plot_model(model, to_file=img_filename, show_shapes=True, show_layer_names=True, rankdir='LR')
+keras.utils.plot_model(model, to_file=img_filename, show_shapes=False, show_layer_names=False)
+
+# dot_graph = keras.utils.model_to_dot(model, show_shapes=True, rankdir="TB")
+# dot_graph.write_pdf(img_filename)
