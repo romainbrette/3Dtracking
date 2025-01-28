@@ -117,7 +117,7 @@ intensities = []
 previous_position = 0
 for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
-    snippets = extract_cells(image, data_frame, image_size, crop=True)
+    snippets = extract_cells(image, data_frame, image_size, crop=False) # I think length and width are not very accurate
     intensities.extend([np.mean(snippet) for snippet in snippets])
 
     i = 0 # this is snippet number

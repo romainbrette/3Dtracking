@@ -1,8 +1,5 @@
 '''
 Trains a network to estimate z from Paramecium image.
-
-TODO:
-- Metrics: on both z and z_mean
 '''
 import os
 from tensorflow.keras.models import Sequential
@@ -55,6 +52,7 @@ parameters = [('epochs', 'Epochs', 500),
               ('min_scaling', 'Minimum intensity scaling', 1.),
               ('max_scaling', 'Maximum intensity scaling', 1.),
               ('learning_rate', 'Learning rate', 5e-4),
+              ('frozen', 'Frozen', False),
               ('visualize', 'Visualize only', False)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
@@ -162,7 +160,10 @@ if P['load_checkpoint']:
     #model.load_weights(checkpoint_filename)
     model = tf.keras.models.load_model(checkpoint_filename)
 else:
-    model = models[model_name](shape)
+    if P['frozen']:
+        model = models[model_name](shape, trainable=False)
+    else:
+        model = models[model_name](shape)
 
 model.summary()
 with open(model_filename, "w") as f:
