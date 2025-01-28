@@ -52,6 +52,7 @@ parameters = [('epochs', 'Epochs', 500),
               ('min_scaling', 'Minimum intensity scaling', 1.),
               ('max_scaling', 'Maximum intensity scaling', 1.),
               ('learning_rate', 'Learning rate', 5e-4),
+              ('patience', 'Patience', 4),
               ('frozen', 'Frozen', False),
               ('visualize', 'Visualize only', False)
               ]
@@ -177,7 +178,7 @@ model.compile(optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=P['learnin
 
 reduce_lr = ReduceLROnPlateau(monitor='loss',
                               factor=0.5,         # Reduce learning rate by half
-                              patience=4, # this must be adapted to the dataset size
+                              patience=P['patience'], # this must be adapted to the dataset size
                               min_lr=1e-7,        # Minimum learning rate
                               verbose=1)
 

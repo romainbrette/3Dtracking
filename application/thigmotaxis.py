@@ -19,6 +19,7 @@ from tracking.trajectory_analysis import *
 from gui.gui import *
 import yaml
 import random
+import seaborn as sns
 
 refraction = 1.33
 
@@ -45,6 +46,8 @@ data['x'] *= pixel_size
 data['y'] *= pixel_size
 data['z'] *= pixel_size*refraction # to compensate for air/water difference
 data = filter_shape(data)
+
+#data = norfair_track(data, distance_threshold=100, memory=4, delay=0)
 
 ### Select all contiguous segments
 segments = segments_from_table(data)
@@ -109,8 +112,12 @@ xlabel('z (um)')
 title("Swimming cells (>150 um/s)")
 tight_layout()
 
+## z vs. t for a sample
 figure()
-pick = random.sample(selected_segments, 15)
+annotated_segments = [(len(segment), segment) for segment in selected_segments]
+annotated_segments.sort(reverse=True, key=lambda x:x[0])
+pick = [segment for _,segment in annotated_segments[:15]]
+#pick = random.sample(selected_segments, 15)
 subplot(211)
 for segment in pick:
     z, t = segment['z'], segment['frame']*dt
@@ -124,7 +131,7 @@ for segment in pick:
 ylabel('Speed (um/s)')
 
 figure()
-speed, z = data['speed_2D']/dt, data['z']
+speed, z = data['speed_3D']/dt, data['z']
 scatter(z, speed, alpha=0.2, s=4)
 xlabel('z (um)')
 ylabel('Speed (um/s)')
@@ -144,6 +151,88 @@ ylabel('Speed (um/s)')
 #
 # figure()
 # scatter(data['x'], data['z'], alpha=0.05, s=4)
+
+# trajectories = trajectories_from_table(data)
+# swimming_segments = [segment for segment in trajectories if ((segment['z']>-150).any()) & ((segment['z']<-350).any())]
+# annotated_segments = [(len(segment), segment) for segment in swimming_segments]
+# annotated_segments.sort(reverse=True, key=lambda x:x[0])
+# pick = [segment for _,segment in annotated_segments[:15]] # number 10 is interesting (ie index 9)
+
+# if False:
+#     for segment in pick[:10]:
+#         z, x, speed, t = segment['z'].values, segment['x'].values, segment['speed'].values, segment['frame'].values*dt
+#         #plot(speed, z)
+#
+#         # Create segments for the curve
+#         points = np.array([speed, z]).T.reshape(-1, 1, 2)
+#         segments = np.concatenate([points[:-1], points[1:]], axis=1)
+#         # Normalize the color variable
+#         norm = Normalize(vmin=t.min(), vmax=t.max())
+#
+#         # Create a LineCollection
+#         lc = LineCollection(segments, cmap='rainbow', norm=norm)
+#         lc.set_array(t)  # Set the variable controlling the color
+#         lc.set_linewidth(2)  # Line width
+#
+#         # Plot the colored curve
+#         fig, ax = plt.subplots() # figsize=(8, 5)
+#         ax.add_collection(lc)
+#         ax.autoscale()  # Adjust axes to fit the data
+#         ax.set_xlim(speed.min(), speed.max())
+#         ax.set_ylim(z.min(), z.max())
+# elif True:
+#     for segment in pick[7:8]:
+#         z, x, speed, t = segment['z'].values, segment['x'].values, segment['speed'].values, segment['frame'].values * dt
+#         # plot(speed, z)
+#
+#         # Create segments for the curve
+#         points = np.array([t, z]).T.reshape(-1, 1, 2)
+#         segments = np.concatenate([points[:-1], points[1:]], axis=1)
+#         # Normalize the color variable
+#         norm = Normalize(vmin=speed.min(), vmax=speed.max())
+#
+#         # Create a LineCollection
+#         lc = LineCollection(segments, cmap='viridis', norm=norm)
+#         lc.set_array(speed)  # Set the variable controlling the color
+#         lc.set_linewidth(2)  # Line width
+#
+#         # Plot the colored curve
+#         fig, ax = plt.subplots()  # figsize=(8, 5)
+#         ax.add_collection(lc)
+#         ax.autoscale()  # Adjust axes to fit the data
+#         ax.set_xlim(t.min(), t.max())
+#         ax.set_ylim(z.min(), z.max())
+# elif False:
+#     for segment in pick[:10]:
+#         z, x, y, speed, t = segment['z'].values, segment['x'].values, segment['y'].values, segment['speed_3D'].values, segment['frame'].values * dt
+#         # plot(speed, z)
+#
+#         # Create segments for the curve
+#         points = np.array([x, y]).T.reshape(-1, 1, 2)
+#         segments = np.concatenate([points[:-1], points[1:]], axis=1)
+#         # Normalize the color variable
+#         norm = Normalize(vmin=z.min(), vmax=z.max())
+#
+#         # Create a LineCollection
+#         lc = LineCollection(segments, cmap='viridis', norm=norm)
+#         lc.set_array(z)  # Set the variable controlling the color
+#         lc.set_linewidth(2)  # Line width
+#
+#         # Plot the colored curve
+#         fig, ax = plt.subplots()  # figsize=(8, 5)
+#         ax.add_collection(lc)
+#         ax.autoscale()  # Adjust axes to fit the data
+#         ax.set_xlim(x.min(), x.max())
+#         ax.set_ylim(y.min(), y.max())
+# else:
+#     for segment in pick[:10]:
+#         z, x, y, speed, t = segment['z'].values, segment['x'].values, segment['y'].values, segment['speed_3D'].values, segment['frame'].values * dt
+#         # plot(speed, z)
+#
+#         fig = plt.figure()
+#         ax = fig.add_subplot(111, projection='3d')
+#         ax.plot(x, y, z, 'k')
+
 
 with open(output_file, 'w') as f:
     yaml.dump(P, f)
