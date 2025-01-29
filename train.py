@@ -54,6 +54,7 @@ parameters = [('epochs', 'Epochs', 500),
               ('learning_rate', 'Learning rate', 5e-4),
               ('patience', 'Patience', 4),
               ('frozen', 'Frozen', False),
+              ('shuffle', 'Shuffle', False), # pre-split shuffle
               ('visualize', 'Visualize only', False)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
@@ -127,7 +128,7 @@ print("Image shape:", shape)
 dataset = tf.data.Dataset.from_tensor_slices((images, labels))
 
 ## Make training and validation sets
-train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=False)
+train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=P["shuffle"])
 
 ## Data augmentation
 ## for proper rotation, do it from a 1.42 larger square then crop
