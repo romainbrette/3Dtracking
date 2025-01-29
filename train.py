@@ -23,6 +23,7 @@ from gui.visualization import *
 import tqdm
 import zipfile
 import io
+import random
 
 AUTOTUNE = tf.data.AUTOTUNE
 
@@ -125,10 +126,19 @@ image = np.array(images[0])
 shape = image.shape
 print("Image shape:", shape)
 
-dataset = tf.data.Dataset.from_tensor_slices((images, labels))
+## Split the dataset into training and validation, and shuffle each dataset after splitting
+images = np.array(images)
+n_train = int(n*(1-validation_ratio))
+train_indices = list(range(n_train))
+random.shuffle(train_indices)
+val_indices = list(range(n_train, n))
+random.shuffle(val_indices)
+train_dataset = tf.data.Dataset.from_tensor_slices((images[train_indices], labels[train_indices]))
+val_dataset = tf.data.Dataset.from_tensor_slices((images[val_indices], labels[val_indices]))
 
 ## Make training and validation sets
-train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=P["shuffle"])
+#dataset = tf.data.Dataset.from_tensor_slices((images, labels))
+#train_dataset, val_dataset = tf.keras.utils.split_dataset(dataset, right_size=validation_ratio, shuffle=P["shuffle"])
 
 ## Data augmentation
 ## for proper rotation, do it from a 1.42 larger square then crop
