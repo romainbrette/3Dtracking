@@ -55,7 +55,7 @@ parameters = [('epochs', 'Epochs', 500),
               ('learning_rate', 'Learning rate', 5e-4),
               ('patience', 'Patience', 4),
               ('frozen', 'Frozen', False),
-              ('shuffle', 'Shuffle', False), # pre-split shuffle
+              ('shuffle', 'Shuffle', True), # post-split shuffle # maybe should be automatic, and have optional pre-split shuffle
               ('visualize', 'Visualize only', False)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
@@ -130,9 +130,10 @@ print("Image shape:", shape)
 images = np.array(images)
 n_train = int(n*(1-validation_ratio))
 train_indices = list(range(n_train))
-random.shuffle(train_indices)
 val_indices = list(range(n_train, n))
-random.shuffle(val_indices)
+if P['shuffle']:
+    random.shuffle(train_indices)
+    random.shuffle(val_indices)
 train_dataset = tf.data.Dataset.from_tensor_slices((images[train_indices], labels[train_indices]))
 val_dataset = tf.data.Dataset.from_tensor_slices((images[val_indices], labels[val_indices]))
 

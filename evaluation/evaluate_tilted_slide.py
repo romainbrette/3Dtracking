@@ -27,6 +27,7 @@ info = {}
 
 df = pd.read_csv(label_path)
 
+#df = df[df['mean_z']>=-500/1.78]
 # Take last 20% (validation part)
 #df = df.iloc[-len(df)//5:]
 
