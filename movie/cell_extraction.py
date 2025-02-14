@@ -7,9 +7,10 @@ from scipy import stats
 
 __all__ = ['extract_cells']
 
-def extract_cells(image, data_frame, size, fill_value=0, crop=False, background=None):
+def extract_cells(image, data_frame, size, fill_value=0, crop=False, background=None, pixel_size=1.):
     '''
     Extract cell images from a big image with cell coordinates in pixel.
+    * `data_frame`: pandas data frame with cell positions in pixel.
     * `size`: size of the output image
     * `background`: if not None, returns the mean background too
     * `crop`: if True, crop a bounding box around the cell based on ellipse parameters
@@ -23,7 +24,8 @@ def extract_cells(image, data_frame, size, fill_value=0, crop=False, background=
     ## Iterate over cells
     snippets = []
     for _, row in data_frame.iterrows():
-        x0, y0, length, width, angle = row['x'], row['y'], row['length'], row['width'], row['angle']
+        x0, y0, length, width, angle = (row['x']/pixel_size, row['y']/pixel_size,
+                                        row['length']/pixel_size, row['width']/pixel_size, row['angle'])
         snippet = np.ones((size, size), dtype=image.dtype)*fill_value
 
         if crop:

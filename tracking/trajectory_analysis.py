@@ -31,6 +31,7 @@ def norfair_track(trajectories, distance_threshold=30, memory=10, delay=0, veloc
     if velocity: # Kalman based estimate
         trajectories['vx_kalman'] = 0.
         trajectories['vy_kalman'] = 0.
+        trajectories['vz_kalman'] = 0.
         trajectories['speed_kalman'] = 0.
 
     output = []

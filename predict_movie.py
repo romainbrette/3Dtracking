@@ -25,6 +25,15 @@ output_trajectories = name+'_with_z.csv'
 ## Model
 model_filename = filedialog.askdirectory(initialdir=os.path.dirname(movie_filename), message='Choose a model')
 
+## Parameters
+parameters = [('in_pixel', 'Trajectory in pixel', True),
+              ('pixel_size', 'Pixel size (um)', 5.06),
+              ('normalize', 'Intensity normalization', False)
+              ]
+param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
+P = param_dialog.value
+pixel_size = P['pixel_size']
+
 ### Load the trained model
 model = load_model(model_filename, custom_objects={'modified_mae' : None, 'mean_abs_difference_metric':None, 'combined_loss':None})
 image_size = model.input_shape[1]
@@ -34,14 +43,16 @@ half_img_size = image_size//2
 data = magic_load_trajectories(traj_filename)
 data['z'] = np.nan
 
-### Parameters
-parameters = [('normalize', 'Intensity normalization', False)]
-param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
-P = param_dialog.value
+### Put data in pixels
+if P['in_pixel']:
+    pixel_size = 1.
 
 ### Open movie
-image_path = os.path.dirname(movie_filename)
-movie = MovieFolder(image_path, auto_invert=True)
+if movie_filename.endswith('.zip'):
+    movie = MovieZip(movie_filename, auto_invert=True, gray=True)
+else:
+    image_path = os.path.dirname(movie_filename)
+    movie = MovieFolder(image_path, auto_invert=True)
 
 ### Get image size
 image = movie.current_frame()
@@ -53,7 +64,7 @@ previous_position = 0
 for image in tqdm.tqdm(movie.frames(), total=n_frames):
     data_frame = data[data['frame'] == previous_position]
     if len(data_frame)>0:
-        snippets = extract_cells(image, data_frame, image_size, crop=True)
+        snippets = extract_cells(image, data_frame, image_size, pixel_size=pixel_size)#, crop=True)
         if P['normalize']:
             predictions = model.predict(np.array([snippet / (np.mean(snippet) + 1e-8) for snippet in snippets]))
         else:
