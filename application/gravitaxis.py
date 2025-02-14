@@ -47,7 +47,7 @@ data['y'] *= pixel_size
 data['z'] *= pixel_size*refraction # to compensate for air/water difference
 #data = filter_shape(data)
 
-data = norfair_track(data, distance_threshold=500, memory=4, delay=0)#, velocity=True)
+data = norfair_track(data, distance_threshold=500, memory=10, delay=0)#, velocity=True)
 
 ### Select all contiguous segments
 segments = segments_from_table(data)
