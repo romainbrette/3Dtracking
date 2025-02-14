@@ -20,6 +20,7 @@ from gui.gui import *
 import yaml
 import random
 import seaborn as sns
+from tracking.z_smoothing import *
 
 refraction = 1.33
 
@@ -47,7 +48,7 @@ data['y'] *= pixel_size
 data['z'] *= pixel_size*refraction # to compensate for air/water difference
 #data = filter_shape(data)
 
-data = norfair_track(data, distance_threshold=500, memory=10, delay=0)#, velocity=True)
+#data = norfair_track(data, distance_threshold=500, memory=10, delay=0)#, velocity=True)
 
 ### Select all contiguous segments
 segments = segments_from_table(data)
@@ -110,7 +111,7 @@ selected_segments = trajectories_from_table(data)
 figure()
 annotated_segments = [(len(segment), segment) for segment in selected_segments]
 annotated_segments.sort(reverse=True, key=lambda x:x[0])
-pick = [segment for _,segment in annotated_segments[:25]]
+pick = [segment for _,segment in annotated_segments[:15]]
 #pick = random.sample(selected_segments, 15)
 subplot(211)
 for segment in pick:
@@ -125,14 +126,28 @@ for segment in pick:
 ylabel('Speed (um/s)')
 
 ## Sample 3D trajectories
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+fig0 = plt.figure()
+ax0= fig0.add_subplot(111, projection='3d')
+fig1 = plt.figure()
+ax1 = fig1.add_subplot(111, projection='3d')
+fig2 = plt.figure()
+ax2 = fig2.add_subplot(111)
 # ax = fig.add_subplot(111)
-for segment in pick:
-    x, y, z, t = segment['x'], segment['y'], segment['z'], segment['frame']*dt
-    z = median_filter(z, size=11)
+for i, segment in enumerate(pick[3:4]):
+    print(i)
+    x, y, z0, t = segment['x'].values, segment['y'].values, segment['z'].values, segment['frame'].values*dt
+    n = 1500
+    x, y, z0, t = x[:n], y[:n], z0[:n], t[:n]
+    ax0.plot(x, y, z0, 'k')
+    ax0.set_box_aspect([1,1,1])
+    ax2.plot(t, z0, 'k')
+    z = smooth_time_series(x, y, z0, lambda_smooth=100000., learning_rate=.1, iterations=50000)
+    print(np.mean(np.abs(z-z0)))
+    #z = median_filter(z, size=11)
     # Plot the trajectory
-    ax.plot(x, y, z, 'k')
+    ax1.plot(x, y, z, 'r')
+    ax1.set_box_aspect([1,1,1])
+    ax2.plot(t, z, 'r')
 
 # figure()
 # x, y = data['x'], data['y']
