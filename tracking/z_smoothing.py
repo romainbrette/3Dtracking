@@ -20,8 +20,8 @@ def smooth_time_series(x, y, z, lambda_smooth=1.0, learning_rate=0.1, iterations
     Returns:
         Smoothed z-coordinates.
     """
-    #z_init = median_filter(z, size=21)
-    z_init = np.random.randn(len(z))*100.
+    z_init = median_filter(z, size=21)
+    #z_init = np.random.randn(len(z))*100.
     #z_init = np.linspace(z[0], z[-1], len(z))
     z_orig = tf.constant(z, dtype=tf.float32)
     z_smooth = tf.Variable(z_init, dtype=tf.float32)  # Learnable smoothed z
@@ -39,12 +39,10 @@ def smooth_time_series(x, y, z, lambda_smooth=1.0, learning_rate=0.1, iterations
     def loss():
         vel = velocity(x, y, z_smooth)
         acc = vel[1:] - vel[:-1]  # Acceleration (change in speed)
-        #data_loss = tf.reduce_mean((z_smooth - z_orig) ** 2)
+        data_loss = tf.reduce_mean((z_smooth - z_orig) ** 2)
         smooth_loss = tf.reduce_mean(acc**2)
-        #print(data_loss, smooth_loss)
-        #return data_loss + lambda_smooth * smooth_loss
-        print(smooth_loss)
-        return smooth_loss
+        print(data_loss, smooth_loss)
+        return data_loss + lambda_smooth * smooth_loss
 
     # Optimize
     optimizer = tf.optimizers.Adam(learning_rate)

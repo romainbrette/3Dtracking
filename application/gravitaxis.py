@@ -141,7 +141,9 @@ for i, segment in enumerate(pick[3:4]):
     ax0.plot(x, y, z0, 'k')
     ax0.set_box_aspect([1,1,1])
     ax2.plot(t, z0, 'k')
-    z = smooth_time_series(x, y, z0, lambda_smooth=100000., learning_rate=.1, iterations=50000)
+    ## not sure the fancy approach works better
+    #z = smooth_time_series(x, y, z0, lambda_smooth=100000., learning_rate=.1, iterations=50000)
+    z = median_filter(z0, size=21)
     print(np.mean(np.abs(z-z0)))
     #z = median_filter(z, size=11)
     # Plot the trajectory
