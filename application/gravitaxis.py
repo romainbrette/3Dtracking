@@ -21,7 +21,7 @@ import yaml
 import random
 import seaborn as sns
 from tracking.z_smoothing import *
-from scipy.stats import binned_statistic_2d
+from scipy.stats import binned_statistic_2d, binned_statistic
 
 refraction = 1.33
 
@@ -49,7 +49,10 @@ data['y'] *= pixel_size
 data['z'] *= pixel_size*refraction # to compensate for air/water difference
 #data = filter_shape(data)
 
-#data = norfair_track(data, distance_threshold=500, memory=10, delay=0)#, velocity=True)
+## Retrack in 3D
+data['z'] *= .05
+data = norfair_track(data, distance_threshold=100, memory=10, delay=2, with_z=True, filtered=True)#, velocity=True)
+data['z'] *= 20
 
 zmin, zmax = data['z'].min(), data['z'].max()
 
@@ -59,7 +62,7 @@ print(len(segments))
 print(np.mean([len(segment) for segment in segments]))
 
 ### Filter segments: longer than 1 s and spanning a distance of at least min_distance
-min_distance = 300  # in um
+min_distance = 1000  # in um
 min_duration = 1.
 selected_segments = [segment for segment in segments if len(segment) > int(min_duration / dt) and \
                      ((segment['x'].max() - segment['x'].min()) ** 2 + (
@@ -108,8 +111,9 @@ xlabel('z (um)')
 title("Swimming cells (>150 um/s)")
 tight_layout()
 
+## z vs. (x,y)
 x, y = data['x'], data['y']
-stat, x_edges, y_edges, _ = binned_statistic_2d(x, y, z, statistic='mean', bins=50)
+stat, x_edges, y_edges, _ = binned_statistic_2d(x, y, z, statistic='mean', bins=10)
 # Create a meshgrid for plotting
 x_centers = (x_edges[:-1] + x_edges[1:]) / 2
 y_centers = (y_edges[:-1] + y_edges[1:]) / 2
@@ -119,14 +123,22 @@ plt.figure(figsize=(6, 5))
 plt.pcolormesh(X, Y, stat.T, cmap='viridis', shading='auto')
 plt.colorbar(label='Mean Z value')
 
+## z vs. x
+bin_means, bin_edges, _ = binned_statistic(x, z, statistic='mean', bins=20)
+# Compute bin centers
+bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+# Plot
+plt.figure(figsize=(6, 4))
+plt.plot(bin_centers, bin_means, marker='o', linestyle='-')
+
 ## z vs. t for a sample
 #selected_segments = [trajectory for trajectory in trajectories_from_table(data) if trajectory['speed']]
 selected_segments = trajectories_from_table(data)
 figure()
 annotated_segments = [(len(segment), segment) for segment in selected_segments]
 annotated_segments.sort(reverse=True, key=lambda x:x[0])
-#pick = [segment for _,segment in annotated_segments[:25]]
-pick = random.sample(selected_segments, 15)
+pick = [segment for _,segment in annotated_segments[:15]]
+#pick = random.sample(selected_segments, 15)
 subplot(211)
 for segment in pick:
     z, t = segment['z'], segment['frame']*dt
@@ -156,7 +168,7 @@ ax1 = fig1.add_subplot(111, projection='3d')
 fig2 = plt.figure()
 ax2 = fig2.add_subplot(111)
 # ax = fig.add_subplot(111)
-for i, segment in enumerate(pick[3:4]):
+for i, segment in enumerate(pick[:2]):
     print(i)
     x, y, z0, t = segment['x'].values, segment['y'].values, segment['z'].values, segment['frame'].values*dt
     n = 1500
