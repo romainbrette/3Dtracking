@@ -16,6 +16,8 @@ import numpy as np
 from numpy import nan
 import warnings
 from tqdm import tqdm
+from matplotlib.collections import LineCollection
+import matplotlib.pyplot as plt
 try:
     import norfair
 except ImportError:
@@ -120,3 +122,17 @@ def abs_variation(table):
     vz = table['vz'].values
     vz = vz[~np.isnan(vz)]
     return np.mean(np.abs(vz))
+
+def plot_colored_trajectory(axs, x, y, color, color_min=None, color_max=None):
+    '''
+    Plot a trajectory with a color-coded value.
+    '''
+    points = np.array([x, y]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+    if (color_min is None) or (color_max is None):
+        color_min, color_max = np.nanmin(color), np.nanmax(color)
+    norm = plt.Normalize(color_min, color_max)
+    lc = LineCollection(segments, cmap='hot', norm=norm)  # twilight, spring
+    lc.set_array(color)
+    line = axs.add_collection(lc)
+    return line

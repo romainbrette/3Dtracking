@@ -49,8 +49,11 @@ print(movie_out, fps)
 data = data[data['frame']*1/fps<P['truncate']]
 
 ### Open movie
-image_path = os.path.dirname(movie_filename)
-movie = MovieFolder(image_path, auto_invert=True)
+if movie_filename.endswith('.zip'):
+    movie = MovieZip(movie_filename, auto_invert=True, gray=True)
+else:
+    image_path = os.path.dirname(movie_filename)
+    movie = MovieFolder(image_path, auto_invert=True)
 
 ### Write movie
 writer = iio.get_writer(movie_out, fps=fps, quality=5)

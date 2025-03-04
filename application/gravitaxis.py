@@ -21,6 +21,7 @@ import yaml
 import random
 import seaborn as sns
 from tracking.z_smoothing import *
+from scipy.stats import binned_statistic_2d
 
 refraction = 1.33
 
@@ -49,6 +50,8 @@ data['z'] *= pixel_size*refraction # to compensate for air/water difference
 #data = filter_shape(data)
 
 #data = norfair_track(data, distance_threshold=500, memory=10, delay=0)#, velocity=True)
+
+zmin, zmax = data['z'].min(), data['z'].max()
 
 ### Select all contiguous segments
 segments = segments_from_table(data)
@@ -105,14 +108,25 @@ xlabel('z (um)')
 title("Swimming cells (>150 um/s)")
 tight_layout()
 
+x, y = data['x'], data['y']
+stat, x_edges, y_edges, _ = binned_statistic_2d(x, y, z, statistic='mean', bins=50)
+# Create a meshgrid for plotting
+x_centers = (x_edges[:-1] + x_edges[1:]) / 2
+y_centers = (y_edges[:-1] + y_edges[1:]) / 2
+X, Y = np.meshgrid(x_centers, y_centers)
+# Plot
+plt.figure(figsize=(6, 5))
+plt.pcolormesh(X, Y, stat.T, cmap='viridis', shading='auto')
+plt.colorbar(label='Mean Z value')
+
 ## z vs. t for a sample
 #selected_segments = [trajectory for trajectory in trajectories_from_table(data) if trajectory['speed']]
 selected_segments = trajectories_from_table(data)
 figure()
 annotated_segments = [(len(segment), segment) for segment in selected_segments]
 annotated_segments.sort(reverse=True, key=lambda x:x[0])
-pick = [segment for _,segment in annotated_segments[:15]]
-#pick = random.sample(selected_segments, 15)
+#pick = [segment for _,segment in annotated_segments[:25]]
+pick = random.sample(selected_segments, 15)
 subplot(211)
 for segment in pick:
     z, t = segment['z'], segment['frame']*dt
@@ -124,6 +138,15 @@ for segment in pick:
     speed, t = segment['speed_2D']/dt, segment['frame']*dt
     plot(t, speed)
 ylabel('Speed (um/s)')
+
+## x vs. y with z in color
+fig, ax = plt.subplots()
+for segment in pick:
+    x, y, z = segment['x'].values, segment['y'].values, segment['z'].values
+    plot_colored_trajectory(ax, x, y, z, color_min=zmin, color_max=zmax)
+ax.autoscale()
+xlabel('x (um)')
+ylabel('y (um)')
 
 ## Sample 3D trajectories
 fig0 = plt.figure()
