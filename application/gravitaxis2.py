@@ -57,21 +57,21 @@ print(len(segments))
 print(np.mean([len(segment) for segment in segments]))
 
 ### Calculate vertical angle
-theta, z, dtheta = [], [], []
+theta, z, theta2 = [], [], []
 for segment in segments:
-    if len(segment) > 50:
+    if len(segment) > 10:
         vx, vy = np.diff(segment['x']), np.diff(segment['y'])
         speed_2D = (vx**2 + vy**2)**.5
-        speed_2D = median_filter(speed_2D, size=15)
+        #speed_2D = median_filter(speed_2D, size=15)
         vz = np.diff(segment['z'])
-        vz = median_filter(vz, size=51)
+        vz = median_filter(vz, size=5)
         angle = np.arctan(vz/speed_2D) # 0 is horizontal, pi/2 is upward
         theta.extend(list(angle[:-1]))
-        dtheta.extend(list(np.diff(angle)))
+        theta2.extend(list(angle[1:]))
 theta = np.array(theta).flatten()
-dtheta = np.array(dtheta).flatten()/dt
+theta2 = np.array(theta2).flatten()
 
 figure()
-scatter(theta, dtheta, s=1)
+scatter(theta, theta2, s=1)
 
 plt.show()
