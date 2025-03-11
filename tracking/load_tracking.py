@@ -26,7 +26,7 @@ def magic_load_trajectories(filename):
     Magically loads a trajectory file by identifying its format.
     '''
     _, ext = os.path.splitext(filename)
-    if (ext == '.tsv'): # table with header
+    if (ext == '.tsv') or (filename.endswith('.tsv.gz')): # table with header
         data = pd.read_table(filename)
         # Older files have wrong names
         data = data.rename(
