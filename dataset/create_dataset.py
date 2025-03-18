@@ -109,6 +109,7 @@ traj = trajectories_from_table(data)
 selected_segments = [segment for segment in traj if \
                      ((segment['x'].max()-segment['x'].min())**2 + (segment['y'].max()-segment['y'].min())**2)>(min_distance/pixel_size)**2]
 data = pd.concat(selected_segments)
+data.sort_values(by='frame', inplace=True) ## doesn't seem to be that useful
 
 if P['zip']:
     zip_ref = zipfile.ZipFile(img_path+'.zip', mode='w', compression=zipfile.ZIP_DEFLATED)
