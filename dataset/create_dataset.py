@@ -140,7 +140,7 @@ for image in tqdm.tqdm(movie.frames(), total=n_frames):
             image_bytes.seek(0)  # Move the cursor to the start of the BytesIO object
             zip_ref.writestr(filename, image_bytes.read())  # Add image as 'image1.png'
         else:
-            imageio.imwrite(os.path.join(img_path, filename, snippet))
+            imageio.imwrite(os.path.join(img_path, filename), snippet)
 
         i += 1
 
