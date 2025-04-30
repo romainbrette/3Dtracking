@@ -39,13 +39,13 @@ parameter_path = os.path.join(path, 'labels.yaml')
 ### Parameters
 parameters = [('angle', 'Angle (°)', 19.2), # signed
               ('in_pixel', 'Trajectory in pixel', True),
-              ('focus_point', 'Focus point (%)', 100), # x position where in focus
+              ('focus_point', 'Focus point (%)', 100), # x position where in focus, in % of total width
               ('pixel_size', 'Pixel size (um)', 5.),
               ('image_size', 'Image size (um)', 200),
-              ('nimages', 'Number of images', 0),
-              ('min_distance', 'Minimum trajectory size (um)', 300.),
+              ('nimages', 'Number of images', 0), # number of images to make; if 0, maximum number of images
+              ('min_distance', 'Minimum trajectory size (um)', 300.), # very short trajectories are filtered out
               ('x_min', 'Minimum x', 0),
-              ('x_max', 'Maximum x', 100000),
+              ('x_max', 'Maximum x', 100000), # for cropping; normally not used
               ('zip', 'Zip', True)
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))

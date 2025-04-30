@@ -41,22 +41,22 @@ else:
 label_path = os.path.join(path, 'labels.csv')
 
 ### Parameters
-parameters = [('epochs', 'Epochs', 500),
+parameters = [('epochs', 'Epochs', 500), # number of training epochs
               ('model', 'Model', list(models.keys())),
-              ('load_checkpoint', 'Load checkpoint', False),
-              ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets
-              ('filename_suffix', 'Filename suffix', ''),
-              ('background_subtracted', 'Background subtracted', True), # if it is background subtracted, the background is constant # could be done automatically
-              ('normalize', 'Intensity normalization', False),
-              ('max_threshold', 'Maximum threshold', 0),
-              ('noise_sigma', 'Noise', 0), # in pixel intensity
-              ('min_scaling', 'Minimum intensity scaling', 1.),
-              ('max_scaling', 'Maximum intensity scaling', 1.),
+              ('load_checkpoint', 'Load checkpoint', False), # check this if you want to load a previously trained network
+              ('predict_sigma', 'Predict sigma', False), # this exists only for synthetic datasets; ignore in most cases
+              ('filename_suffix', 'Filename suffix', ''), # this is a suffix for produced files
+              ('background_subtracted', 'Background subtracted', True), # check if background was subtracted
+              ('normalize', 'Intensity normalization', False), # normalize by mean intensity, usually not a good idea
+              ('max_threshold', 'Maximum threshold', 0), # augmentation with thresholding; normally not used
+              ('noise_sigma', 'Noise', 0), # noise augmentation, in pixel intensity (normally 0-255)
+              ('min_scaling', 'Minimum intensity scaling', 1.), # intensity scaling augmentation
+              ('max_scaling', 'Maximum intensity scaling', 1.), # intensity scaling augmentation
               ('learning_rate', 'Learning rate', 5e-4),
-              ('patience', 'Patience', 4),
-              ('frozen', 'Frozen', False),
+              ('patience', 'Patience', 4), # how many epochs when the error can increase before the learning rate is halved
+              ('frozen', 'Frozen', False), # for some complicated models, the base can be frozen
               ('shuffle', 'Shuffle', True), # post-split shuffle # maybe should be automatic, and have optional pre-split shuffle
-              ('visualize', 'Visualize only', False)
+              ('visualize', 'Visualize only', False) # this is to visualize the dataset
               ]
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value

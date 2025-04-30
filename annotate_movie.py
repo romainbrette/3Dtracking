@@ -32,7 +32,7 @@ parameters = [('pixel_size', 'Pixel size (um)', 1.78),
               ('fps', 'FPS (Hz)', 20.),
               ('text_shift', 'Text shift (um)', 200),
               ('font_size', 'Font size (pixel)', 30),
-              ('truncate', 'Truncation (s)', 1e6)]
+              ('truncate', 'Truncation (s)', 1e6)] # to just apply the script on the first frames
 param_dialog = (ParametersDialog(title='Enter parameters', parameters=parameters))
 P = param_dialog.value
 if P['in_pixel']:

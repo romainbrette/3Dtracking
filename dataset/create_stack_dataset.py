@@ -4,8 +4,8 @@ Each folder corresponds to a particular z.
 
 Assumed:
 - subfolders are sorted by name, in order of depth
-- an images folder inside each subfolder
-- trajectory file inside each folder (txt/csv/tsv).
+- an `images` folder inside each subfolder
+- trajectory file inside each folder (txt/csv/tsv), with a `z` column.
 '''
 import numpy as np
 import os

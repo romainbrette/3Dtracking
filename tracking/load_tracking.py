@@ -28,11 +28,6 @@ def magic_load_trajectories(filename):
     _, ext = os.path.splitext(filename)
     if (ext == '.tsv') or (filename.endswith('.tsv.gz')): # table with header
         data = pd.read_table(filename)
-        # Older files have wrong names
-        data = data.rename(
-            columns={'centroid-0': 'y', 'centroid-1': 'x', 'major_axis_length': 'length', 'minor_axis_length': 'width',
-                     'orientation': 'angle'})
-        # Check if there are ids
     elif (ext == '.csv'):
         data = pd.read_csv(filename)
     elif os.path.basename(filename) == 'tracking.txt': # Fasttrack

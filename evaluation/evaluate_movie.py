@@ -1,5 +1,6 @@
 '''
 Evaluate the quality of a model's prediction on trajectories from a movie.
+It calculates the mean absolute variation of z within trajectories.
 '''
 import numpy as np
 import os

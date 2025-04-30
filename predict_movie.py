@@ -1,5 +1,8 @@
 '''
 Predict z on a movie (tiff folder).
+
+If it is a .tiff folder, select one of the tiff files.
+If it is a zipped folder, select the zip file.
 '''
 import numpy as np
 import os
@@ -26,7 +29,7 @@ output_trajectories = name+'_with_z.csv'
 model_filename = filedialog.askdirectory(initialdir=os.path.dirname(movie_filename), message='Choose a model')
 
 ## Parameters
-parameters = [('in_pixel', 'Trajectory in pixel', True),
+parameters = [('in_pixel', 'Trajectory in pixel', True), # unit of the trajectory file (pixel or um)
               ('pixel_size', 'Pixel size (um)', 5.06),
               ('normalize', 'Intensity normalization', False)
               ]

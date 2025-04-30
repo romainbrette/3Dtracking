@@ -1,5 +1,5 @@
 '''
-Evaluate a trained model on a dataset.
+Evaluates a trained model on a dataset (tilted slide).
 '''
 import os
 from tkinter import filedialog

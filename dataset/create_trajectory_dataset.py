@@ -2,6 +2,8 @@
 Makes a dataset from a movie or tiff folder.
 The label file is ordered by trajectories, and a binary number marks the endpoint of a trajectory with 0 (vs. 1).
 
+This is done to use trajectory-wise errors in training. But not used in the paper.
+
 TODO:
 - remove cells with close neighbors
 - load movies (not just tiffs)

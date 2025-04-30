@@ -1,5 +1,5 @@
 '''
-Analyzes a dataset
+Analyzes a dataset to show intensity (mean, std, mean/std) vs. z.
 '''
 import os
 from tkinter import filedialog

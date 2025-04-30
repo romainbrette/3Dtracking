@@ -1,5 +1,7 @@
 '''
 Models for estimating z.
+
+The only one actually used in the paper is simple_conv (no improvement seen with the other ones).
 '''
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
@@ -73,7 +75,7 @@ def dense_model(shape):
     return model
 
 def convmax(shape):
-    model = Sequential([ # tuned model, but I'm not sure, final receptive fields are too small
+    model = Sequential([
         Conv2D(75, (5, 5), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),
         Conv2D(87, (5, 5), activation='leaky_relu'),
@@ -85,7 +87,7 @@ def convmax(shape):
     return model
 
 def simple_conv(shape):
-    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
+    model = Sequential([
         Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),
         Conv2D(64, (3, 3), activation='leaky_relu'),
@@ -99,7 +101,7 @@ def simple_conv(shape):
     return model
 
 def larger_simple_conv(shape):
-    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
+    model = Sequential([
         Conv2D(32, (5, 5), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),
         Conv2D(64, (5, 5), activation='leaky_relu'),
@@ -113,7 +115,7 @@ def larger_simple_conv(shape):
     return model
 
 def simple_conv_2dense(shape):
-    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
+    model = Sequential([
         Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),
         Conv2D(64, (3, 3), activation='leaky_relu'),
@@ -127,7 +129,7 @@ def simple_conv_2dense(shape):
     return model
 
 def simple_conv_rectified(shape):
-    model = Sequential([  # tuned model, but I'm not sure, final receptive fields are too small
+    model = Sequential([
         Conv2D(32, (3, 3), activation='leaky_relu', input_shape=shape),
         MaxPooling2D((2, 2)),
         Conv2D(64, (3, 3), activation='leaky_relu'),

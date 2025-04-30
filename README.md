@@ -1,5 +1,11 @@
 # Three-dimensional tracking of protists from two-dimensional microscopy images
 
+Code for the article:
+
+Three-dimensional tracking of protists from two-dimensional microscopy images (2025)
+
+Ali Hosseini, Célia Fosse, Maya Awada, Marcel Stimberg, Romain Brette
+
 ## Requirements
 - `tensorflow`
 - `keras`
@@ -12,14 +18,12 @@
 This code assumes that 2D tracks have already been extracted from the movie. This can be done with various tools,
 such as Fasttrack or Fiji.
 The trajectory file can be a Fasttrack file, or a simple csv/tsv file with fields x, y and frame.
-Dimensions must be in pixel.
+Dimensions can be in pixel or in um.
 
 ## Typical workflow
 1. Make a training data set. This can be done with:
   - `dataset/create_dataset.py` for a movie on a tilted slide;
   - `dataset/create_stack_dataset.py` for movies on horizontal slides at several known z positions;
-  - `synthetic/synthetic_dataset.py` for an artificial dataset with blurred ellipses.
-  - `synthetic/semi_synthetic_dataset.py` for a semi-artificial dataset made of blurred cell images.
 
 2. Train with `train.py`. Training can be with respect to z or, in the case of a synthetic dataset, sigma
 (the amount of blurring).
@@ -35,16 +39,33 @@ Dimensions must be in pixel.
 - `predict_dataset.py` applies the trained model on a dataset and adds a column `z_predict`.
 - `predict_movie.py` applies the trained model on a tiff folder (movie) with trajectory file,
    and adds a column `z` to the trajectory file.
+- `annotate_movie.py` writes the estimated z next to each cell. Must be used with a trajectory file with estimate 
+   z, produced by `predict_movie.py`.
+
+### `augmentation/`
+Various image augmentation functions for training.
 
 ### `dataset/`
 Scripts to create labeled datasets of cell images from a tiff folder (movie)
 and a trajectory file.
 
-### `synthetic/`
-Various scripts to create and analyze synthetic data.
+### `evaluation/`
+Scripts to evaluate the quality of estimation.
+
+### `figures/`
+Scripts to make the figures of the paper.
 
 ### `gui/`
 These are utility scripts for user interfaces.
 
+### `models/`
+Various estimation models.
+
+### `synthetic/`
+Various scripts to create and analyze synthetic data.
+
 ### `tracking/`
-These are utility scripts to load trajectory files.
+These are utility scripts to load and analyze trajectory files.
+
+### `trained/`
+Trained models. Note that the model must be trained on each specific experimental setup.
