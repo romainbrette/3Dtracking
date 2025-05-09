@@ -24,8 +24,8 @@ def extract_cells(image, data_frame, size, fill_value=0, crop=False, background=
     ## Iterate over cells
     snippets = []
     for _, row in data_frame.iterrows():
-        x0, y0, length, width, angle = (row['x']/pixel_size, row['y']/pixel_size,
-                                        row['length']/pixel_size, row['width']/pixel_size, row['angle'])
+        x0, y0, length, width, angle = (int(row['x']/pixel_size), int(row['y']/pixel_size),
+                                        int(row['length']/pixel_size), int(row['width']/pixel_size), row['angle'])
         snippet = np.ones((size, size), dtype=image.dtype)*fill_value
 
         if crop:
