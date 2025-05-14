@@ -182,9 +182,9 @@ class MovieZip(MovieFolder):
 
         self.zipname = filename
         # Get all file names
-        with zipfile.ZipFile(filename, 'r') as zip_ref:
-            # List all files in the zip
-            self.files = zip_ref.namelist() # assuming these are only images
+        self.zip_ref = zipfile.ZipFile(filename, 'r')
+        # List all files in the zip
+        self.files = self.zip_ref.namelist() # assuming these are only images
 
         self.files.sort()
         self.set_auto_invert() # not the best way to do it
@@ -194,7 +194,9 @@ class MovieZip(MovieFolder):
 
     # Generator giving frames one by one
     def _current_frame(self):
-        with zipfile.ZipFile(self.zipname, 'r') as zip_ref:
-            with zip_ref.open(self.files[self.position]) as file:
-                image = imageio.imread(file)
+        with self.zip_ref.open(self.files[self.position]) as file:
+            image = imageio.imread(file)
         return image
+
+    def close(self):
+        self.zip_ref.close()
